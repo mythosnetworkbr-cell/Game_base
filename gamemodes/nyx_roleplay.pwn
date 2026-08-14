@@ -6,6 +6,7 @@
 #include <nyx_marriage>
 #include <nyx_ncoins>
 #include <nyx_world>
+#include <nyx_properties>
 
 #define D_LOGIN 1000
 #define D_REGISTER 1001
@@ -29,7 +30,8 @@ public OnGameModeInit()
     Create3DTextLabel("{8B5CF6}DELEGACIA CENTRAL NYX",COLOR_WHITE,1550.0,-1600.0,15.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}CASSINO NYX",COLOR_WHITE,2200.0,-1670.0,16.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}SEX SHOP NYX",COLOR_WHITE,1350.0,-1740.0,15.0,30.0,0,1);
-    print("[NYX] GameMode inicializada: 15 empregos, 24 organizacoes, NCoins, casamento e servicos.");
+    Create3DTextLabel("{8B5CF6}IGREJA CENTRAL NYX",COLOR_WHITE,1420.0,-1710.0,15.0,30.0,0,1);
+    print("[NYX] GameMode: empregos, 24 orgs, NCoins, casamento, servicos, propriedades, leilao e familias.");
     return 1;
 }
 
@@ -80,8 +82,7 @@ public OnDialogResponse(playerid,dialogid,response,listitem,inputtext[])
             if(!response) return ShowPlayerDialog(playerid,D_REGISTER,DIALOG_STYLE_PASSWORD,"NYX | REGISTRO","Crie sua senha. Minimo 4 caracteres.","CRIAR","VOLTAR");
             if(strlen(inputtext)<4) return ShowPlayerDialog(playerid,D_LOGIN,DIALOG_STYLE_PASSWORD,"NYX | LOGIN","Senha muito curta.","ENTRAR","REGISTRAR");
             NYX_Player[playerid][NYX_Logged]=1;
-            SendClientMessage(playerid,COLOR_SUCCESS,"Login realizado. Bem-vindo ao NYX ROLEPLAY!");
-            return 1;
+            SendClientMessage(playerid,COLOR_SUCCESS,"Login realizado. Bem-vindo ao NYX ROLEPLAY!"); return 1;
         }
         case D_REGISTER:
         {
@@ -166,6 +167,10 @@ public OnPlayerCommandText(playerid,cmdtext[])
     if(!strcmp(cmdtext,"/empregos",true)) return NYX_ShowJobs(playerid);
     if(!strcmp(cmdtext,"/trabalhar",true)) return NYX_StartJob(playerid);
     if(!strcmp(cmdtext,"/concluir",true)) return NYX_ConcludeJob(playerid);
+    if(!strcmp(cmdtext,"/lanchonetes",true)) return NYX_ShowFood(playerid);
+    if(!strcmp(cmdtext,"/imoveis",true)) return NYX_ShowProperties(playerid);
+    if(!strcmp(cmdtext,"/leilao",true)) return NYX_ShowAuction(playerid);
+    if(!strcmp(cmdtext,"/familias",true)) return NYX_ShowFamilies(playerid);
     if(!strcmp(cmdtext,"/skin",true)) return ShowPlayerDialog(playerid,D_SKINS,DIALOG_STYLE_INPUT,"NYX | SKINS","Digite o ID da skin (0-311).\n1 = mendigo masculino\n2 = mendigo feminino","USAR","FECHAR");
     if(!strcmp(cmdtext,"/status",true))
     {
@@ -193,6 +198,6 @@ public OnPlayerCommandText(playerid,cmdtext[])
     if(!strcmp(cmdtext,"/divorcio",true)){if(!NYX_Divorce(playerid))return SendClientMessage(playerid,COLOR_WARNING,"Voce nao esta casado.");return SendClientMessage(playerid,COLOR_SUCCESS,"Divorcio realizado.");}
     if(!strcmp(cmdtext,"/loja",true))return ShowPlayerDialog(playerid,D_STORE,DIALOG_STYLE_MSGBOX,"NYX | NCOINS","Moeda premium NYX.\nSkins premium podem usar NCoins.\nCompras reais devem ser processadas pelo backend oficial.","OK","");
     if(!strcmp(cmdtext,"/gps",true)){SetPlayerCheckpoint(playerid,NYX_SPAWN_X,NYX_SPAWN_Y,NYX_SPAWN_Z,4.0);return SendClientMessage(playerid,COLOR_SUCCESS,"GPS marcado: Centro / Prefeitura NYX.");}
-    if(!strcmp(cmdtext,"/ajuda",true))return ShowPlayerDialog(playerid,D_HELP,DIALOG_STYLE_MSGBOX,"NYX | AJUDA","/empregos /trabalhar /concluir\n/orgs /status /skin\n/ncoins /loja\n/casar ID /aceitarcasamento /divorcio\n/mundo /gps","FECHAR","");
+    if(!strcmp(cmdtext,"/ajuda",true))return ShowPlayerDialog(playerid,D_HELP,DIALOG_STYLE_MSGBOX,"NYX | AJUDA","/empregos /trabalhar /concluir\n/orgs /status /skin\n/lanchonetes /imoveis /leilao /familias\n/ncoins /loja\n/casar ID /aceitarcasamento /divorcio\n/mundo /gps","FECHAR","");
     return 0;
 }
