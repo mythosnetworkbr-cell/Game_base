@@ -1,1 +1,5 @@
-NYX build trigger. The build uses the public michaelace/pawncc:3.10.11-linux image and produces nyx_roleplay.amx as a GitHub Actions artifact.
+NYX build trigger.
+
+The build uses Pawn 3.10.11 and fetches the public samp-stdlib standard includes before compiling the NYX GameMode and Staff entrypoint.
+
+Last trigger: 2026-08-14T20:37Z
