@@ -18,7 +18,9 @@ jobs:
       - name: Install standard SA-MP includes
         run: |
           set -e
-          git clone --depth 1 https://github.com/pawn-lang/samp-stdlib.git /tmp/samp-stdlib
+          mkdir -p /tmp/samp-stdlib
+          curl -fsSL https://github.com/pawn-lang/samp-stdlib/archive/refs/heads/master.tar.gz -o /tmp/samp-stdlib.tar.gz
+          tar -xzf /tmp/samp-stdlib.tar.gz -C /tmp/samp-stdlib --strip-components=1
           test -s /tmp/samp-stdlib/a_samp.inc
 
       - name: Verify Pawn compiler
