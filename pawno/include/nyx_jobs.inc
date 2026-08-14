@@ -3,13 +3,19 @@
 #endif
 #define _NYX_JOBS_INCLUDED
 
-#define NYX_JOB_COUNT 10
+#define NYX_JOB_COUNT 15
 
 new const NYX_JobName[NYX_JOB_COUNT][] = {
     "Desempregado", "Taxista", "Entregador", "Caminhoneiro", "Lixeiro",
-    "Motorista de Onibus", "Pescador", "Agricultor", "Mecanico Civil", "Reporter"
+    "Motorista de Onibus", "Pescador", "Agricultor", "Mecanico Civil", "Reporter",
+    "Construcao / Obra", "Minerador", "Frentista / Posto", "Gasista", "Motoboy"
 };
-new const NYX_JobPay[NYX_JOB_COUNT] = {0,450,550,850,500,650,700,600,750,600};
+
+new const NYX_JobPay[NYX_JOB_COUNT] = {
+    0, 450, 550, 850, 500,
+    650, 700, 600, 750, 600,
+    900, 950, 650, 800, 700
+};
 
 stock NYX_GetJobName(jobid, output[], size)
 {
