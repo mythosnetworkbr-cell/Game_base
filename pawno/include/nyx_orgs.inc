@@ -3,17 +3,40 @@
 #endif
 #define _NYX_ORGS_INCLUDED
 
-#define NYX_ORG_COUNT 12
+// Organizacoes unicas da NYX. A mesma organizacao atua em todo o mapa.
+#define NYX_ORG_COUNT 24
 
 new const NYX_OrgName[NYX_ORG_COUNT][] = {
-    "Policia Militar", "Policia Civil", "SAMU", "Mecanicos",
-    "Governo", "Jornal NYX", "Ballas", "Families",
-    "BOPE", "Policia Federal", "Los Aztecas", "Comando Vermelho"
+    "Policia Militar",
+    "Policia Civil",
+    "Policia Federal",
+    "BOPE",
+    "Forcas Armadas",
+    "Exercito Brasileiro",
+    "Marinha do Brasil",
+    "Forca Aerea Brasileira",
+    "Guarda Municipal",
+    "SAMU",
+    "Corpo de Bombeiros",
+    "Governo",
+    "Prefeitura NYX",
+    "Jornal NYX",
+    "Mecanicos",
+    "Transportes NYX",
+    "Ballas",
+    "Families",
+    "Comando Vermelho",
+    "Primeiro Comando",
+    "Los Aztecas",
+    "Cartel NYX",
+    "Motoclube",
+    "Sindicato do Crime"
 };
 
 new bool:NYX_OrgActive[NYX_ORG_COUNT] = {
-    true, true, true, true, true, true, true, true,
-    true, true, true, true
+    true,true,true,true,true,true,true,true,
+    true,true,true,true,true,true,true,true,
+    true,true,true,true,true,true,true,true
 };
 
 stock NYX_IsValidOrg(orgid)
