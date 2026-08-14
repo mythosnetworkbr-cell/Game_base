@@ -19,7 +19,7 @@ jobs:
         shell: bash
         run: |
           export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
-          pawncc 2>&1 | head -n 2
+          pawncc 2>&1 | head -n 2 || true
 
       - name: Compile NYX
         shell: bash
