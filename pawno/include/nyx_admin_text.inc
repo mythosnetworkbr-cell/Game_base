@@ -4,6 +4,18 @@
 #define _NYX_ADMIN_TEXT_INCLUDED
 #include <sscanf2>
 stock NYX_AdminDeny(playerid) { return SendClientMessage(playerid, COLOR_ERROR, "NYX: voce nao possui permissao para este comando."); }
+stock strncmp(const a[], const b[], length, bool:ignorecase=false)
+{
+    new i, ca, cb;
+    for(i=0; i<length; i++)
+    {
+        ca=a[i]; cb=b[i];
+        if(ignorecase){if(ca>='A'&&ca<='Z') ca+=32;if(cb>='A'&&cb<='Z') cb+=32;}
+        if(ca!=cb) return ca-cb;
+        if(ca==EOS) return 0;
+    }
+    return 0;
+}
 stock bool:NYX_AdminCommandText(playerid, cmdtext[])
 {
     if (!NYX_Player[playerid][NYX_Logged]) return false;
