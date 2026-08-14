@@ -5,9 +5,6 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-env:
-  INCLUDE: "gamemodes;pawno/include"
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,13 +16,18 @@ jobs:
       - name: Verify Pawn compiler
         run: pawncc 2>&1 | head -n 2 || true
 
-      - name: Compile NYX staff GameMode
+      - name: Inject NYX staff layer
+        run: |
+          set -e
+          sed -i '/#include <nyx_graphics>/a #include <nyx_admin>' gamemodes/nyx_roleplay.pwn
+
+      - name: Compile NYX GameMode
         run: |
           set -o pipefail
           mkdir -p build
-          pawncc -O2 -d3 -Z -o"build/nyx_roleplay.amx" "gamemodes/nyx_roleplay_staff.pwn" 2>&1 | tee build/compile.log
+          pawncc -i"pawno/include" -O2 -d3 -Z -o"build/nyx_roleplay.amx" "gamemodes/nyx_roleplay.pwn" 2>&1 | tee build/compile.log
           test -s build/nyx_roleplay.amx
-          cp gamemodes/nyx_roleplay_staff.pwn build/nyx_roleplay.pwn
+          cp gamemodes/nyx_roleplay.pwn build/nyx_roleplay.pwn
 
       - name: Package test build
         run: |
