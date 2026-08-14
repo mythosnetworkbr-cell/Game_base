@@ -22,10 +22,12 @@ jobs:
           sed -i '/#include <nyx_graphics>/a #include <nyx_admin>' gamemodes/nyx_roleplay.pwn
 
       - name: Compile NYX GameMode
+        env:
+          INCLUDE: "gamemodes:pawno/include"
         run: |
           set -o pipefail
           mkdir -p build
-          pawncc -i"pawno/include" -O2 -d3 -Z -o"build/nyx_roleplay.amx" "gamemodes/nyx_roleplay.pwn" 2>&1 | tee build/compile.log
+          pawncc -O2 -d3 -Z -o"build/nyx_roleplay.amx" "gamemodes/nyx_roleplay.pwn" 2>&1 | tee build/compile.log
           test -s build/nyx_roleplay.amx
           cp gamemodes/nyx_roleplay.pwn build/nyx_roleplay.pwn
 
