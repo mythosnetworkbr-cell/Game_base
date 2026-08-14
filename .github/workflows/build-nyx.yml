@@ -20,7 +20,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p build
-          pawncc -i"pawno/include" -O2 -d3 -Z -o"build/nyx_roleplay.amx" "gamemodes/nyx_roleplay_staff.pwn" 2>&1 | tee build/compile.log
+          pawncc -i"gamemodes" -i"pawno/include" -O2 -d3 -Z -o"build/nyx_roleplay.amx" "gamemodes/nyx_roleplay_staff.pwn" 2>&1 | tee build/compile.log
           test -s build/nyx_roleplay.amx
           cp gamemodes/nyx_roleplay_staff.pwn build/nyx_roleplay.pwn
 
