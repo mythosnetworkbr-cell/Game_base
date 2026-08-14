@@ -1,0 +1,1 @@
+../pawno/include/nyx_properties.inc

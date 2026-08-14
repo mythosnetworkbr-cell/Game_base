@@ -1,0 +1,1 @@
+../pawno/include/a_samp.inc
