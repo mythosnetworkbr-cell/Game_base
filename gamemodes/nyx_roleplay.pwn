@@ -7,6 +7,7 @@
 #include <nyx_ncoins>
 #include <nyx_world>
 #include <nyx_properties>
+#include <nyx_graphics>
 
 #define D_LOGIN 1000
 #define D_REGISTER 1001
@@ -23,15 +24,15 @@ public OnGameModeInit()
     SetGameModeText(NYX_SERVER_NAME);
     ShowPlayerMarkers(1); ShowNameTags(1); UsePlayerPedAnims();
     SetWorldTime(12); SetWeather(10);
-    AddPlayerClass(1,NYX_SPAWN_X,NYX_SPAWN_Y,NYX_SPAWN_Z,0.0,0,0,0,0,0,0);
-    AddPlayerClass(2,NYX_SPAWN_X,NYX_SPAWN_Y,NYX_SPAWN_Z,0.0,0,0,0,0,0,0);
+    AddPlayerClass(NYX_DEFAULT_SKIN_MALE,NYX_SPAWN_X,NYX_SPAWN_Y,NYX_SPAWN_Z,0.0,0,0,0,0,0,0);
+    AddPlayerClass(NYX_DEFAULT_SKIN_FEMALE,NYX_SPAWN_X,NYX_SPAWN_Y,NYX_SPAWN_Z,0.0,0,0,0,0,0,0);
     Create3DTextLabel("{8B5CF6}NYX ROLEPLAY\n{FFFFFF}Prefeitura / Centro",COLOR_WHITE,NYX_SPAWN_X,NYX_SPAWN_Y,21.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}HOSPITAL CENTRAL NYX",COLOR_WHITE,1520.0,-1675.0,15.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}DELEGACIA CENTRAL NYX",COLOR_WHITE,1550.0,-1600.0,15.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}CASSINO NYX",COLOR_WHITE,2200.0,-1670.0,16.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}SEX SHOP NYX",COLOR_WHITE,1350.0,-1740.0,15.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}IGREJA CENTRAL NYX",COLOR_WHITE,1420.0,-1710.0,15.0,30.0,0,1);
-    print("[NYX] GameMode: empregos, 24 orgs, NCoins, casamento, servicos, propriedades, leilao e familias.");
+    print("[NYX] GameMode: perfil High Clarity + empregos + orgs + NCoins + casamento + mundo + propriedades.");
     return 1;
 }
 
@@ -39,6 +40,7 @@ public OnPlayerConnect(playerid)
 {
     NYX_ResetPlayer(playerid); NYX_ResetJob(playerid); NYX_ResetMarriage(playerid);
     NYX_PendingMarriage[playerid]=INVALID_PLAYER_ID;
+    NYX_ApplyGraphicsProfile(playerid);
     ShowPlayerDialog(playerid,D_LOGIN,DIALOG_STYLE_PASSWORD,"NYX ROLEPLAY | LOGIN","Bem-vindo ao NYX ROLEPLAY.\n\nDigite sua senha para entrar.\nSeu personagem inicia como mendigo.","ENTRAR","REGISTRAR");
     return 1;
 }
@@ -51,7 +53,7 @@ public OnPlayerDisconnect(playerid,reason)
 
 public OnPlayerRequestClass(playerid,classid)
 {
-    NYX_Player[playerid][NYX_Skin]=(classid==0)?1:2;
+    NYX_Player[playerid][NYX_Skin]=(classid==0)?NYX_DEFAULT_SKIN_MALE:NYX_DEFAULT_SKIN_FEMALE;
     SetPlayerSkin(playerid,NYX_Player[playerid][NYX_Skin]);
     SetPlayerCameraPos(playerid,1488.0,-1757.0,24.0);
     SetPlayerCameraLookAt(playerid,NYX_SPAWN_X,NYX_SPAWN_Y,19.0); return 1;
@@ -60,6 +62,7 @@ public OnPlayerRequestClass(playerid,classid)
 public OnPlayerSpawn(playerid)
 {
     if(!NYX_Player[playerid][NYX_Logged]) return 1;
+    NYX_ApplyGraphicsProfile(playerid);
     NYX_SetupSpawn(playerid); return 1;
 }
 
