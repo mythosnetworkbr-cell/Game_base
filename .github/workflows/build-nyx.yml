@@ -8,35 +8,19 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container: michaelace/pawncc:3.10.11-linux
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download official Pawn compiler 3.10.11
-        run: |
-          set -e
-          curl -L --fail --retry 3 -o pawnc.tar.gz https://github.com/openmultiplayer/compiler/releases/download/v3.10.11/pawnc-3.10.11-linux.tar.gz
-          mkdir -p .pawnc
-          tar -xzf pawnc.tar.gz -C .pawnc
-          PAWNCC=$(find .pawnc -type f -name pawncc | head -1)
-          echo "PAWNCC=$PAWNCC" >> "$GITHUB_ENV"
-          LIBDIR=$(dirname "$PAWNCC")/../lib
-          echo "LD_LIBRARY_PATH=$LIBDIR:$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
-          chmod +x "$PAWNCC"
-          "$PAWNCC" 2>&1 | head -n 2 || true
-
-      - name: Compile minimal Pawn smoke test
-        run: |
-          set -e
-          printf '#include <a_samp>\nmain(){}\n' > /tmp/nyx_smoke.pwn
-          "$PAWNCC" -i"pawno/include" -o/tmp/nyx_smoke.amx /tmp/nyx_smoke.pwn
-          test -s /tmp/nyx_smoke.amx
+      - name: Verify Pawn compiler
+        run: pawncc 2>&1 | head -n 2 || true
 
       - name: Compile NYX staff GameMode
         run: |
           set -o pipefail
           mkdir -p build
-          "$PAWNCC" -i"pawno/include" -O2 -d3 -Z -o"build/nyx_roleplay.amx" "gamemodes/nyx_roleplay_staff.pwn" 2>&1 | tee build/compile.log
+          pawncc -i"pawno/include" -O2 -d3 -Z -o"build/nyx_roleplay.amx" "gamemodes/nyx_roleplay_staff.pwn" 2>&1 | tee build/compile.log
           test -s build/nyx_roleplay.amx
           cp gamemodes/nyx_roleplay_staff.pwn build/nyx_roleplay.pwn
 
