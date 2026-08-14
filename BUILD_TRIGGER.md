@@ -1,0 +1,1 @@
+NYX build trigger. The build uses the public michaelace/pawncc:3.10.11-linux image and produces nyx_roleplay.amx as a GitHub Actions artifact.
