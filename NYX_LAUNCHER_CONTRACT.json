@@ -1,0 +1,10 @@
+{
+  "launcher_repository": "mythosnetworkbr-cell/Nyx_Roleplay",
+  "launcher_branch": "main",
+  "server_name": "NYX ROLEPLAY",
+  "protocol": "samp-compatible",
+  "default_port": 7777,
+  "required_client_flow": ["verify", "update", "launch"],
+  "gamemode": "gamemodes/nyx_roleplay.pwn",
+  "staff_gamemode": "gamemodes/nyx_roleplay_staff.pwn"
+}
