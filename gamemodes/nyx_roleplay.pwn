@@ -29,7 +29,7 @@ public OnGameModeInit()
     Create3DTextLabel("{8B5CF6}DELEGACIA CENTRAL NYX",COLOR_WHITE,1550.0,-1600.0,15.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}CASSINO NYX",COLOR_WHITE,2200.0,-1670.0,16.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}SEX SHOP NYX",COLOR_WHITE,1350.0,-1740.0,15.0,30.0,0,1);
-    print("[NYX] GameMode inicializada: 15 empregos, 12 organizacoes, NCoins, casamento e servicos.");
+    print("[NYX] GameMode inicializada: 15 empregos, 24 organizacoes, NCoins, casamento e servicos.");
     return 1;
 }
 
@@ -66,7 +66,7 @@ public OnPlayerEnterCheckpoint(playerid)
     if(NYX_JobRunning[playerid])
     {
         DisablePlayerCheckpoint(playerid);
-        SendClientMessage(playerid,COLOR_NYX,"Destino alcançado. Use /concluir para receber seu pagamento.");
+        SendClientMessage(playerid,COLOR_NYX,"Destino alcancado. Use /concluir para receber seu pagamento.");
     }
     return 1;
 }
@@ -101,15 +101,15 @@ public OnDialogResponse(playerid,dialogid,response,listitem,inputtext[])
         case D_ORGS:
         {
             if(!response||!NYX_IsValidOrg(listitem)) return 1;
-            new info[256];
-            format(info,sizeof info,"Organizacao: %s\nStatus: %s\nCargos: 1-%d\n\nA mesma organizacao atua em todo o mapa.",NYX_OrgName[listitem],NYX_OrgActive[listitem]?"ATIVA":"OFFLINE",NYX_MAX_RANKS);
+            new info[320];
+            format(info,sizeof info,"Organizacao: %s\nStatus: %s\nCargos: 1-%d\n\nA mesma organizacao atua em todo o mapa.\nLideranca, recrutamento e promocoes sao controlados pelo sistema.",NYX_OrgName[listitem],NYX_OrgActive[listitem]?"ATIVA":"OFFLINE",NYX_MAX_RANKS);
             return ShowPlayerDialog(playerid,D_HELP,DIALOG_STYLE_MSGBOX,"NYX | ORGANIZACAO",info,"OK","");
         }
         case D_JOBS:
         {
             if(!response||listitem<1||listitem>=NYX_JOB_COUNT) return 1;
             NYX_PlayerJob[playerid]=listitem;
-            new msg[128]; format(msg,sizeof msg,"Emprego escolhido: %s | Salario por entrega: $%d. Use /trabalhar.",NYX_JobName[listitem],NYX_JobPay[listitem]);
+            new msg[128]; format(msg,sizeof msg,"Emprego escolhido: %s | Salario por servico: $%d. Use /trabalhar.",NYX_JobName[listitem],NYX_JobPay[listitem]);
             return SendClientMessage(playerid,COLOR_SUCCESS,msg);
         }
         case D_STORE:
@@ -159,7 +159,7 @@ public OnPlayerCommandText(playerid,cmdtext[])
     if(!NYX_Player[playerid][NYX_Logged]) return 1;
     if(!strcmp(cmdtext,"/orgs",true))
     {
-        new list[1024],line[96];list[0]=EOS;
+        new list[2048],line[96];list[0]=EOS;
         for(new i=0;i<NYX_ORG_COUNT;i++){format(line,sizeof line,"[%s] %s\n",NYX_OrgActive[i]?"ATIVA":"OFFLINE",NYX_OrgName[i]);strcat(list,line,sizeof list);}
         return ShowPlayerDialog(playerid,D_ORGS,DIALOG_STYLE_LIST,"NYX | ORGANIZACOES",list,"VER","FECHAR");
     }
@@ -169,8 +169,8 @@ public OnPlayerCommandText(playerid,cmdtext[])
     if(!strcmp(cmdtext,"/skin",true)) return ShowPlayerDialog(playerid,D_SKINS,DIALOG_STYLE_INPUT,"NYX | SKINS","Digite o ID da skin (0-311).\n1 = mendigo masculino\n2 = mendigo feminino","USAR","FECHAR");
     if(!strcmp(cmdtext,"/status",true))
     {
-        new job[48],org[48];NYX_GetJobName(NYX_PlayerJob[playerid],job,sizeof job);format(org,sizeof org,"Civil");
-        if(NYX_IsValidOrg(NYX_Player[playerid][NYX_Org]))format(org,sizeof org," %s",NYX_OrgName[NYX_Player[playerid][NYX_Org]]);
+        new job[48],org[64];NYX_GetJobName(NYX_PlayerJob[playerid],job,sizeof job);format(org,sizeof org,"Civil");
+        if(NYX_IsValidOrg(NYX_Player[playerid][NYX_Org]))format(org,sizeof org,"%s",NYX_OrgName[NYX_Player[playerid][NYX_Org]]);
         new msg[256];format(msg,sizeof msg,"NYX | Dinheiro: $%d | NCoins: %d | Skin: %d | Emprego: %s | Org: %s",GetPlayerMoney(playerid),NYX_Player[playerid][NYX_NCoins],NYX_Player[playerid][NYX_Skin],job,org);
         return SendClientMessage(playerid,COLOR_WHITE,msg);
     }
