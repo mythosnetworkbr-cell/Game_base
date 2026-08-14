@@ -2,7 +2,9 @@ name: NYX Pawn Build
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - nyx-build-test
   workflow_dispatch:
 
 jobs:
@@ -14,22 +16,29 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Verify Pawn compiler
-        run: pawncc 2>&1 | head -n 2 || true
+        run: pawncc 2>&1 | head -n 3 || true
 
-      - name: Compile NYX staff GameMode
+      - name: Compile NYX GameMode
         run: |
           set -o pipefail
           mkdir -p build
-          pawncc -i"gamemodes" -i"pawno/include" -O2 -d3 -Z -o"build/nyx_roleplay.amx" "gamemodes/nyx_roleplay_staff.pwn" 2>&1 | tee build/compile.log
+          pawncc -i"gamemodes" -i"pawno/include" -O2 -d3 -Z -o"build/nyx_roleplay.amx" "gamemodes/nyx_roleplay.pwn" 2>&1 | tee build/compile.log
           test -s build/nyx_roleplay.amx
-          cp gamemodes/nyx_roleplay_staff.pwn build/nyx_roleplay.pwn
+
+      - name: Compile NYX Staff entrypoint
+        run: |
+          set -o pipefail
+          pawncc -i"gamemodes" -i"pawno/include" -O2 -d3 -Z -o"build/nyx_roleplay_staff.amx" "gamemodes/nyx_roleplay_staff.pwn" 2>&1 | tee -a build/compile.log
+          test -s build/nyx_roleplay_staff.amx
 
       - name: Package test build
         run: |
           mkdir -p build/nyx_test
           cp -r pawno/include build/nyx_test/
+          cp gamemodes/nyx_roleplay.pwn build/nyx_test/
+          cp gamemodes/nyx_roleplay_staff.pwn build/nyx_test/
           cp build/nyx_roleplay.amx build/nyx_test/
-          cp build/nyx_roleplay.pwn build/nyx_test/
+          cp build/nyx_roleplay_staff.amx build/nyx_test/
           cp build/compile.log build/nyx_test/
           tar -czf nyx-test-build.tar.gz -C build nyx_test
 
@@ -39,6 +48,6 @@ jobs:
           name: nyx-test-build
           path: |
             build/nyx_roleplay.amx
-            build/nyx_roleplay.pwn
+            build/nyx_roleplay_staff.amx
             build/compile.log
             nyx-test-build.tar.gz
