@@ -8,33 +8,36 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: michaelace/pawncc:3.10.11-linux
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Verify compiler
-        shell: bash
+      - name: Download official Pawn compiler 3.10.11
         run: |
-          export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
-          pawncc 2>&1 | head -n 2 || true
+          set -e
+          curl -L --fail --retry 3 -o pawnc.tar.gz https://github.com/openmultiplayer/compiler/releases/download/v3.10.11/pawnc-3.10.11-linux.tar.gz
+          mkdir -p .pawnc
+          tar -xzf pawnc.tar.gz -C .pawnc
+          PAWNCC=$(find .pawnc -type f -name pawncc | head -1)
+          echo "PAWNCC=$PAWNCC" >> "$GITHUB_ENV"
+          LIBDIR=$(dirname "$PAWNCC")/../lib
+          echo "LD_LIBRARY_PATH=$LIBDIR:$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
+          chmod +x "$PAWNCC"
+          "$PAWNCC" 2>&1 | head -n 2 || true
+
+      - name: Compile minimal Pawn smoke test
+        run: |
+          set -e
+          printf '#include <a_samp>\nmain(){}\n' > /tmp/nyx_smoke.pwn
+          "$PAWNCC" -i"pawno/include" -o/tmp/nyx_smoke.amx /tmp/nyx_smoke.pwn
+          test -s /tmp/nyx_smoke.amx
 
       - name: Compile NYX
-        shell: bash
         run: |
-          export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
+          set -o pipefail
           mkdir -p build
-          pawncc gamemodes/nyx_roleplay.pwn \
-            '-D./' \
-            '-O2' \
-            '-;+' \
-            '-(+' \
-            '-d2' \
-            '-i pawno/include' \
-            '-Z' \
-            '-o build/nyx_roleplay.amx'
+          "$PAWNCC" -i"pawno/include" -O2 -d3 -Z -o"build/nyx_roleplay.amx" "gamemodes/nyx_roleplay.pwn" 2>&1 | tee build/compile.log
+          test -s build/nyx_roleplay.amx
           cp gamemodes/nyx_roleplay.pwn build/nyx_roleplay.pwn
 
       - name: Package test build
@@ -43,6 +46,7 @@ jobs:
           cp -r pawno/include build/nyx_test/
           cp build/nyx_roleplay.amx build/nyx_test/
           cp build/nyx_roleplay.pwn build/nyx_test/
+          cp build/compile.log build/nyx_test/
           tar -czf nyx-test-build.tar.gz -C build nyx_test
 
       - name: Upload AMX
@@ -52,4 +56,5 @@ jobs:
           path: |
             build/nyx_roleplay.amx
             build/nyx_roleplay.pwn
+            build/compile.log
             nyx-test-build.tar.gz
