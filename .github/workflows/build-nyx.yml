@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+env:
+  INCLUDE: "gamemodes;pawno/include"
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -20,7 +23,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p build
-          pawncc -i"gamemodes" -O2 -d3 -Z -o"build/nyx_roleplay.amx" "gamemodes/nyx_roleplay_staff.pwn" 2>&1 | tee build/compile.log
+          pawncc -O2 -d3 -Z -o"build/nyx_roleplay.amx" "gamemodes/nyx_roleplay_staff.pwn" 2>&1 | tee build/compile.log
           test -s build/nyx_roleplay.amx
           cp gamemodes/nyx_roleplay_staff.pwn build/nyx_roleplay.pwn
 
