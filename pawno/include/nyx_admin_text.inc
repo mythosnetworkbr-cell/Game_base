@@ -2,6 +2,8 @@
     #endinput
 #endif
 #define _NYX_ADMIN_TEXT_INCLUDED
+#include <sscanf2>
+stock NYX_AdminDeny(playerid) { return SendClientMessage(playerid, COLOR_ERROR, "NYX: voce nao possui permissao para este comando."); }
 stock bool:NYX_AdminCommandText(playerid, cmdtext[])
 {
     if (!NYX_Player[playerid][NYX_Logged]) return false;
