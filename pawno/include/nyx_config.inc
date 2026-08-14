@@ -4,16 +4,22 @@
 #define _NYX_CONFIG_INCLUDED
 
 #define NYX_SERVER_NAME "NYX ROLEPLAY"
-#define NYX_VERSION "0.2.0"
+#define NYX_VERSION "1.0.0"
 #define NYX_SPAWN_X 1481.0
 #define NYX_SPAWN_Y -1771.0
 #define NYX_SPAWN_Z 18.8
 #define NYX_START_MONEY 5000
-#define NYX_MAX_ORGS 8
+#define NYX_MAX_ORGS 12
 #define NYX_MAX_RANKS 10
+#define NYX_MAX_VEHICLES 100
+#define NYX_MAX_HOUSES 100
+#define NYX_MAX_BUSINESSES 100
 
 #define COLOR_NYX 0x8B5CF6FF
 #define COLOR_SUCCESS 0x6EE7B7FF
 #define COLOR_WARNING 0xFFB84DFF
 #define COLOR_ERROR 0xFF4D6DFF
 #define COLOR_WHITE 0xFFFFFFFF
+
+// Skins SA-MP incluídas como presets; não exigem download externo.
+new const NYX_DEFAULT_SKINS[] = {23,93,280,274,50,147,102,104,7,46,170,285};
