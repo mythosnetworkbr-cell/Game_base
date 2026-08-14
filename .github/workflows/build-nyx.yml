@@ -16,11 +16,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Verify compiler
-        run: pawncc -i
+        run: |
+          export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
+          pawncc -i
 
       - name: Compile NYX
         shell: bash
         run: |
+          export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
           mkdir -p build
           pawncc gamemodes/nyx_roleplay.pwn \
             '-D./' \
