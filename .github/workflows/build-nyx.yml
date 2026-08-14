@@ -15,6 +15,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install standard SA-MP includes
+        run: |
+          set -e
+          git clone --depth 1 https://github.com/pawn-lang/samp-stdlib.git /tmp/samp-stdlib
+          test -s /tmp/samp-stdlib/a_samp.inc
+
       - name: Verify Pawn compiler
         run: pawncc 2>&1 | head -n 3 || true
 
@@ -22,13 +28,13 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p build
-          pawncc -i"gamemodes" -i"pawno/include" -O2 -d3 -Z -o"build/nyx_roleplay.amx" "gamemodes/nyx_roleplay.pwn" 2>&1 | tee build/compile.log
+          pawncc -i"/tmp/samp-stdlib" -i"gamemodes" -i"pawno/include" -O2 -d3 -Z -o"build/nyx_roleplay.amx" "gamemodes/nyx_roleplay.pwn" 2>&1 | tee build/compile.log
           test -s build/nyx_roleplay.amx
 
       - name: Compile NYX Staff entrypoint
         run: |
           set -o pipefail
-          pawncc -i"gamemodes" -i"pawno/include" -O2 -d3 -Z -o"build/nyx_roleplay_staff.amx" "gamemodes/nyx_roleplay_staff.pwn" 2>&1 | tee -a build/compile.log
+          pawncc -i"/tmp/samp-stdlib" -i"gamemodes" -i"pawno/include" -O2 -d3 -Z -o"build/nyx_roleplay_staff.amx" "gamemodes/nyx_roleplay_staff.pwn" 2>&1 | tee -a build/compile.log
           test -s build/nyx_roleplay_staff.amx
 
       - name: Package test build
