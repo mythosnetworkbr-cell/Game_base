@@ -32,13 +32,13 @@ jobs:
           "$PAWNCC" -i"pawno/include" -o/tmp/nyx_smoke.amx /tmp/nyx_smoke.pwn
           test -s /tmp/nyx_smoke.amx
 
-      - name: Compile NYX
+      - name: Compile NYX staff GameMode
         run: |
           set -o pipefail
           mkdir -p build
-          "$PAWNCC" -i"pawno/include" -O2 -d3 -Z -o"build/nyx_roleplay.amx" "gamemodes/nyx_roleplay.pwn" 2>&1 | tee build/compile.log
+          "$PAWNCC" -i"pawno/include" -O2 -d3 -Z -o"build/nyx_roleplay.amx" "gamemodes/nyx_roleplay_staff.pwn" 2>&1 | tee build/compile.log
           test -s build/nyx_roleplay.amx
-          cp gamemodes/nyx_roleplay.pwn build/nyx_roleplay.pwn
+          cp gamemodes/nyx_roleplay_staff.pwn build/nyx_roleplay.pwn
 
       - name: Package test build
         run: |
