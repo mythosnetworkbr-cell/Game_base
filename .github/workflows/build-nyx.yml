@@ -28,7 +28,16 @@ jobs:
         run: |
           set -e
           sed -i '/#include <nyx_graphics>/a #include <nyx_admin_text>' gamemodes/nyx_roleplay.pwn
-          sed -i '/public OnPlayerCommandText(playerid,cmdtext\[\])/a\    if(NYX_AdminCommandText(playerid, cmdtext)) return 1;' gamemodes/nyx_roleplay.pwn
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('gamemodes/nyx_roleplay.pwn')
+          s=p.read_text()
+          marker='public OnPlayerCommandText(playerid,cmdtext[])\n{\n'
+          if marker not in s:
+              raise SystemExit('OnPlayerCommandText marker not found')
+          s=s.replace(marker, marker+'    if(NYX_AdminCommandText(playerid, cmdtext)) return 1;\n', 1)
+          p.write_text(s)
+          PY
 
       - name: Compile NYX GameMode
         run: |
