@@ -8,28 +8,29 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: michaelace/pawncc:3.10.11-linux
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install tools
-        run: sudo apt-get update && sudo apt-get install -y curl tar
-
-      - name: Download Pawn compiler 3.10.11
-        run: |
-          curl -L --fail --retry 3 -o pawnc.tar.gz https://github.com/openmultiplayer/compiler/releases/download/v3.10.11/pawnc-3.10.11-linux.tar.gz
-          mkdir -p .pawnc
-          tar -xzf pawnc.tar.gz -C .pawnc
-          find .pawnc -type f -maxdepth 3 -print
-          chmod +x $(find .pawnc -type f -name pawncc | head -1)
+      - name: Verify compiler
+        run: pawncc -i
 
       - name: Compile NYX
         shell: bash
         run: |
-          PAWNCC=$(find .pawnc -type f -name pawncc | head -1)
-          if [ -z "$PAWNCC" ]; then echo 'pawncc not found'; exit 1; fi
           mkdir -p build
-          "$PAWNCC" -i"pawno/include" -O2 -Z -d3 -o"build/nyx_roleplay.amx" "gamemodes/nyx_roleplay.pwn"
+          pawncc gamemodes/nyx_roleplay.pwn \
+            '-D./' \
+            '-O2' \
+            '-;+' \
+            '-(+' \
+            '-d3' \
+            '-i pawno/include' \
+            '-Z' \
+            '-o build/nyx_roleplay.amx'
           cp gamemodes/nyx_roleplay.pwn build/nyx_roleplay.pwn
 
       - name: Package test build
