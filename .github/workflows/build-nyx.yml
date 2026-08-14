@@ -28,7 +28,7 @@ jobs:
         run: |
           set -e
           sed -i '/#include <nyx_graphics>/a #include <nyx_admin_text>' gamemodes/nyx_roleplay.pwn
-          sed -i '/if(!NYX_Player\[playerid\]\[NYX_Logged\]) return 1;/a\    if(NYX_AdminCommandText(playerid, cmdtext)) return 1;' gamemodes/nyx_roleplay.pwn
+          sed -i '/public OnPlayerCommandText(playerid,cmdtext\[\])/a\    if(NYX_AdminCommandText(playerid, cmdtext)) return 1;' gamemodes/nyx_roleplay.pwn
 
       - name: Compile NYX GameMode
         run: |
