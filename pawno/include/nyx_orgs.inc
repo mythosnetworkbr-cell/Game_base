@@ -3,21 +3,17 @@
 #endif
 #define _NYX_ORGS_INCLUDED
 
-#define NYX_ORG_COUNT 8
+#define NYX_ORG_COUNT 12
 
 new const NYX_OrgName[NYX_ORG_COUNT][] = {
-    "Policia Militar",
-    "Policia Civil",
-    "SAMU",
-    "Mecanicos",
-    "Governo",
-    "Jornal NYX",
-    "Ballas",
-    "Families"
+    "Policia Militar", "Policia Civil", "SAMU", "Mecanicos",
+    "Governo", "Jornal NYX", "Ballas", "Families",
+    "BOPE", "Policia Federal", "Los Aztecas", "Comando Vermelho"
 };
 
 new bool:NYX_OrgActive[NYX_ORG_COUNT] = {
-    true, true, true, true, true, true, true, true
+    true, true, true, true, true, true, true, true,
+    true, true, true, true
 };
 
 stock NYX_IsValidOrg(orgid)
