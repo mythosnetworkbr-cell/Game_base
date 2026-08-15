@@ -14,13 +14,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install standard SA-MP includes
+      - name: Install SA-MP and Pawn standard includes
         run: |
           set -e
-          mkdir -p "$RUNNER_TEMP/samp-stdlib"
+          mkdir -p "$RUNNER_TEMP/samp-stdlib" "$RUNNER_TEMP/pawn-stdlib"
           curl -fsSL --retry 3 --retry-delay 2 https://github.com/pawn-lang/samp-stdlib/archive/refs/heads/master.tar.gz -o "$RUNNER_TEMP/samp-stdlib.tar.gz"
+          curl -fsSL --retry 3 --retry-delay 2 https://github.com/pawn-lang/pawn-stdlib/archive/refs/heads/master.tar.gz -o "$RUNNER_TEMP/pawn-stdlib.tar.gz"
           tar -xzf "$RUNNER_TEMP/samp-stdlib.tar.gz" -C "$RUNNER_TEMP/samp-stdlib" --strip-components=1
+          tar -xzf "$RUNNER_TEMP/pawn-stdlib.tar.gz" -C "$RUNNER_TEMP/pawn-stdlib" --strip-components=1
+          cp "$RUNNER_TEMP/pawn-stdlib/"*.inc "$RUNNER_TEMP/samp-stdlib/"
           test -s "$RUNNER_TEMP/samp-stdlib/a_samp.inc"
+          test -s "$RUNNER_TEMP/samp-stdlib/core.inc"
+          test -s "$RUNNER_TEMP/samp-stdlib/string.inc"
+          test -s "$RUNNER_TEMP/samp-stdlib/file.inc"
 
       - name: Verify Pawn compiler container
         run: docker run --rm michaelace/pawncc:3.10.11-linux pawncc 2>&1 | head -n 3 || true
