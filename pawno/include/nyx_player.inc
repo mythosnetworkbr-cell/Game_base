@@ -5,6 +5,7 @@
 
 #define NYX_FIRST_SKIN_ID 0
 #define NYX_LAST_SKIN_ID 311
+#define NYX_BANK_START 10000
 
 enum E_NYX_PLAYER {
     NYX_Logged,
@@ -17,17 +18,92 @@ enum E_NYX_PLAYER {
 };
 
 new NYX_Player[MAX_PLAYERS][E_NYX_PLAYER];
+new NYX_Bank[MAX_PLAYERS];
+new NYX_AccountPassword[MAX_PLAYERS][64];
+new bool:NYX_AccountLoaded[MAX_PLAYERS];
+
+stock NYX_AccountFile(playerid, path[], size)
+{
+    new name[MAX_PLAYER_NAME];
+    GetPlayerName(playerid,name,sizeof name);
+    format(path,size,"scriptfiles/nyx_%s.dat",name);
+    return 1;
+}
+
+stock NYX_AccountExists(playerid)
+{
+    new path[96];
+    NYX_AccountFile(playerid,path,sizeof path);
+    return fexist(path);
+}
 
 stock NYX_ResetPlayer(playerid)
 {
     NYX_Player[playerid][NYX_Logged] = 0;
     NYX_Player[playerid][NYX_Skin] = (playerid % 2) ? 2 : 1;
-    NYX_Player[playerid][NYX_Money] = 5000;
+    NYX_Player[playerid][NYX_Money] = NYX_START_MONEY;
     NYX_Player[playerid][NYX_NCoins] = 0;
     NYX_Player[playerid][NYX_Org] = -1;
     NYX_Player[playerid][NYX_OrgRank] = 0;
     NYX_Player[playerid][NYX_Admin] = 0;
+    NYX_Bank[playerid] = NYX_BANK_START;
+    NYX_AccountPassword[playerid][0] = EOS;
+    NYX_AccountLoaded[playerid] = false;
     return 1;
+}
+
+stock NYX_SaveAccount(playerid)
+{
+    if(!NYX_AccountLoaded[playerid]) return 0;
+    new path[96],line[128],file;
+    NYX_AccountFile(playerid,path,sizeof path);
+    file=fopen(path,io_write);
+    if(!file) return 0;
+    fwrite(file,NYX_AccountPassword[playerid]);
+    format(line,sizeof line,"%d",NYX_Player[playerid][NYX_Money]); fwrite(file,line);
+    format(line,sizeof line,"%d",NYX_Bank[playerid]); fwrite(file,line);
+    format(line,sizeof line,"%d",NYX_Player[playerid][NYX_Skin]); fwrite(file,line);
+    format(line,sizeof line,"%d",NYX_Player[playerid][NYX_NCoins]); fwrite(file,line);
+    format(line,sizeof line,"%d",NYX_Player[playerid][NYX_Org]); fwrite(file,line);
+    format(line,sizeof line,"%d",NYX_Player[playerid][NYX_OrgRank]); fwrite(file,line);
+    format(line,sizeof line,"%d",NYX_Player[playerid][NYX_Admin]); fwrite(file,line);
+    fclose(file);
+    return 1;
+}
+
+stock NYX_LoadAccount(playerid,password[])
+{
+    new path[96],line[128],file;
+    NYX_AccountFile(playerid,path,sizeof path);
+    file=fopen(path,io_read);
+    if(!file) return 0;
+    fread(file,line,sizeof line); line[sizeof line-1]=EOS;
+    if(strcmp(line,password,false)!=0){fclose(file);return -1;}
+    format(NYX_AccountPassword[playerid],64,"%s",password);
+    fread(file,line,sizeof line); NYX_Player[playerid][NYX_Money]=strval(line);
+    fread(file,line,sizeof line); NYX_Bank[playerid]=strval(line);
+    fread(file,line,sizeof line); NYX_Player[playerid][NYX_Skin]=strval(line);
+    fread(file,line,sizeof line); NYX_Player[playerid][NYX_NCoins]=strval(line);
+    fread(file,line,sizeof line); NYX_Player[playerid][NYX_Org]=strval(line);
+    fread(file,line,sizeof line); NYX_Player[playerid][NYX_OrgRank]=strval(line);
+    fread(file,line,sizeof line); NYX_Player[playerid][NYX_Admin]=strval(line);
+    fclose(file);
+    NYX_AccountLoaded[playerid]=true;
+    return 1;
+}
+
+stock NYX_CreateAccount(playerid,password[])
+{
+    if(NYX_AccountExists(playerid)) return 0;
+    format(NYX_AccountPassword[playerid],64,"%s",password);
+    NYX_Player[playerid][NYX_Money]=NYX_START_MONEY;
+    NYX_Bank[playerid]=NYX_BANK_START;
+    NYX_Player[playerid][NYX_NCoins]=0;
+    NYX_Player[playerid][NYX_Org]=-1;
+    NYX_Player[playerid][NYX_OrgRank]=0;
+    NYX_Player[playerid][NYX_Admin]=0;
+    NYX_AccountLoaded[playerid]=true;
+    return NYX_SaveAccount(playerid);
 }
 
 stock NYX_IsValidSkin(skinid)
@@ -43,5 +119,31 @@ stock NYX_SetupSpawn(playerid)
     ResetPlayerMoney(playerid);
     GivePlayerMoney(playerid,NYX_Player[playerid][NYX_Money]);
     SetCameraBehindPlayer(playerid);
+    return 1;
+}
+
+stock NYX_SyncMoney(playerid)
+{
+    NYX_Player[playerid][NYX_Money]=GetPlayerMoney(playerid);
+    return 1;
+}
+
+stock NYX_Deposit(playerid,amount)
+{
+    if(amount<=0 || amount>GetPlayerMoney(playerid)) return 0;
+    GivePlayerMoney(playerid,-amount);
+    NYX_Bank[playerid]+=amount;
+    NYX_SyncMoney(playerid);
+    NYX_SaveAccount(playerid);
+    return 1;
+}
+
+stock NYX_Withdraw(playerid,amount)
+{
+    if(amount<=0 || amount>NYX_Bank[playerid]) return 0;
+    GivePlayerMoney(playerid,amount);
+    NYX_Bank[playerid]-=amount;
+    NYX_SyncMoney(playerid);
+    NYX_SaveAccount(playerid);
     return 1;
 }
