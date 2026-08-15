@@ -63,6 +63,7 @@ stock NYX_LoadAccount(playerid)
     if (!NYX_DBReady) return 0;
     new name[MAX_PLAYER_NAME + 1], escaped[(MAX_PLAYER_NAME * 2) + 3], query[256];
     NYX_GetPlayerNameSafe(playerid, name, sizeof name);
+    format(NYX_AccountName[playerid], sizeof NYX_AccountName[], "%s", name);
     NYX_SQLQuote(name, escaped, sizeof escaped);
     format(query, sizeof query, "SELECT password,money,ncoins,skin,org,org_rank,admin FROM accounts WHERE name='%s' LIMIT 1", escaped);
     new DBResult:result = db_query(NYX_DB, query);
