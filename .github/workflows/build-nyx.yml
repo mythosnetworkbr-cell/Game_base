@@ -17,10 +17,10 @@ jobs:
       - name: Install standard SA-MP includes
         run: |
           set -e
-          mkdir -p /tmp/samp-stdlib
-          curl -fsSL --retry 3 --retry-delay 2 https://github.com/pawn-lang/samp-stdlib/archive/refs/heads/master.tar.gz -o /tmp/samp-stdlib.tar.gz
-          tar -xzf /tmp/samp-stdlib.tar.gz -C /tmp/samp-stdlib --strip-components=1
-          test -s /tmp/samp-stdlib/a_samp.inc
+          mkdir -p "$RUNNER_TEMP/samp-stdlib"
+          curl -fsSL --retry 3 --retry-delay 2 https://github.com/pawn-lang/samp-stdlib/archive/refs/heads/master.tar.gz -o "$RUNNER_TEMP/samp-stdlib.tar.gz"
+          tar -xzf "$RUNNER_TEMP/samp-stdlib.tar.gz" -C "$RUNNER_TEMP/samp-stdlib" --strip-components=1
+          test -s "$RUNNER_TEMP/samp-stdlib/a_samp.inc"
 
       - name: Verify Pawn compiler container
         run: docker run --rm michaelace/pawncc:3.10.11-linux pawncc 2>&1 | head -n 3 || true
@@ -29,16 +29,24 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p build
-          docker run --rm -v "$PWD":/workspace -w /workspace michaelace/pawncc:3.10.11-linux \
-            pawncc -i"/workspace/../" -i"/workspace/pawno/include" -i"/workspace/gamemodes" -O2 -d3 -Z \
+          docker run --rm \
+            -v "$PWD":/workspace \
+            -v "$RUNNER_TEMP/samp-stdlib":/samp-stdlib:ro \
+            -w /workspace \
+            michaelace/pawncc:3.10.11-linux \
+            pawncc -i"/samp-stdlib" -i"/workspace/pawno/include" -i"/workspace/gamemodes" -O2 -d3 -Z \
             -o"/workspace/build/nyx_roleplay.amx" "/workspace/gamemodes/nyx_roleplay.pwn" 2>&1 | tee build/compile.log
           test -s build/nyx_roleplay.amx
 
       - name: Compile NYX Staff entrypoint
         run: |
           set -o pipefail
-          docker run --rm -v "$PWD":/workspace -w /workspace michaelace/pawncc:3.10.11-linux \
-            pawncc -i"/workspace/pawno/include" -i"/workspace/gamemodes" -O2 -d3 -Z \
+          docker run --rm \
+            -v "$PWD":/workspace \
+            -v "$RUNNER_TEMP/samp-stdlib":/samp-stdlib:ro \
+            -w /workspace \
+            michaelace/pawncc:3.10.11-linux \
+            pawncc -i"/samp-stdlib" -i"/workspace/pawno/include" -i"/workspace/gamemodes" -O2 -d3 -Z \
             -o"/workspace/build/nyx_roleplay_staff.amx" "/workspace/gamemodes/nyx_roleplay_staff.pwn" 2>&1 | tee -a build/compile.log
           test -s build/nyx_roleplay_staff.amx
 
