@@ -10,7 +10,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: michaelace/pawncc:3.10.11-linux
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,24 +18,28 @@ jobs:
         run: |
           set -e
           mkdir -p /tmp/samp-stdlib
-          wget -q --tries=3 --timeout=30 https://github.com/pawn-lang/samp-stdlib/archive/refs/heads/master.tar.gz -O /tmp/samp-stdlib.tar.gz
+          curl -fsSL --retry 3 --retry-delay 2 https://github.com/pawn-lang/samp-stdlib/archive/refs/heads/master.tar.gz -o /tmp/samp-stdlib.tar.gz
           tar -xzf /tmp/samp-stdlib.tar.gz -C /tmp/samp-stdlib --strip-components=1
           test -s /tmp/samp-stdlib/a_samp.inc
 
-      - name: Verify Pawn compiler
-        run: pawncc 2>&1 | head -n 3 || true
+      - name: Verify Pawn compiler container
+        run: docker run --rm michaelace/pawncc:3.10.11-linux pawncc 2>&1 | head -n 3 || true
 
       - name: Compile NYX GameMode
         run: |
           set -o pipefail
           mkdir -p build
-          pawncc -i"/tmp/samp-stdlib" -i"gamemodes" -i"pawno/include" -O2 -d3 -Z -o"build/nyx_roleplay.amx" "gamemodes/nyx_roleplay.pwn" 2>&1 | tee build/compile.log
+          docker run --rm -v "$PWD":/workspace -w /workspace michaelace/pawncc:3.10.11-linux \
+            pawncc -i"/workspace/../" -i"/workspace/pawno/include" -i"/workspace/gamemodes" -O2 -d3 -Z \
+            -o"/workspace/build/nyx_roleplay.amx" "/workspace/gamemodes/nyx_roleplay.pwn" 2>&1 | tee build/compile.log
           test -s build/nyx_roleplay.amx
 
       - name: Compile NYX Staff entrypoint
         run: |
           set -o pipefail
-          pawncc -i"/tmp/samp-stdlib" -i"gamemodes" -i"pawno/include" -O2 -d3 -Z -o"build/nyx_roleplay_staff.amx" "gamemodes/nyx_roleplay_staff.pwn" 2>&1 | tee -a build/compile.log
+          docker run --rm -v "$PWD":/workspace -w /workspace michaelace/pawncc:3.10.11-linux \
+            pawncc -i"/workspace/pawno/include" -i"/workspace/gamemodes" -O2 -d3 -Z \
+            -o"/workspace/build/nyx_roleplay_staff.amx" "/workspace/gamemodes/nyx_roleplay_staff.pwn" 2>&1 | tee -a build/compile.log
           test -s build/nyx_roleplay_staff.amx
 
       - name: Package test build
