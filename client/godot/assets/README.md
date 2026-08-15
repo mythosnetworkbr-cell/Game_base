@@ -1,0 +1,1 @@
+Visual references supplied by the project owner are being used as the art-direction reference for the NYX 3D client: Brazilian urban RP, sunset lighting, beach/city atmosphere, vehicles, characters, server selection and mobile HUD. The playable client uses original procedural 3D geometry rather than copying third-party game assets.
