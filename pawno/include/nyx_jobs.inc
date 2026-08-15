@@ -4,6 +4,8 @@
 #define _NYX_JOBS_INCLUDED
 
 #define NYX_JOB_COUNT 15
+#define NYX_JOB_FINISH_RADIUS 8.0
+#define NYX_JOB_COOLDOWN_SECONDS 15
 
 new const NYX_JobName[NYX_JOB_COUNT][] = {
     "Desempregado", "Taxista", "Entregador", "Caminhoneiro", "Lixeiro",
@@ -34,6 +36,7 @@ new const Float:NYX_JobPoint[NYX_JOB_COUNT][3] = {
 new NYX_PlayerJob[MAX_PLAYERS];
 new bool:NYX_JobRunning[MAX_PLAYERS];
 new NYX_JobVehicleId[MAX_PLAYERS];
+new NYX_JobLastFinish[MAX_PLAYERS];
 
 stock NYX_GetJobName(jobid, output[], size)
 {
@@ -59,5 +62,6 @@ stock NYX_ResetJob(playerid)
     NYX_PlayerJob[playerid] = 0;
     NYX_JobRunning[playerid] = false;
     NYX_JobVehicleId[playerid] = INVALID_VEHICLE_ID;
+    NYX_JobLastFinish[playerid] = 0;
     return 1;
 }
