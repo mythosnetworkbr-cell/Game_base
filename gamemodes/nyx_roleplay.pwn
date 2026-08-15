@@ -16,8 +16,12 @@
 #define D_HELP 1004
 #define D_JOBS 1005
 #define D_STORE 1006
+#define D_BANK 1007
+#define D_PROFILE 1008
 
 new NYX_PendingMarriage[MAX_PLAYERS];
+
+forward NYX_AutoSave();
 
 public OnGameModeInit()
 {
@@ -26,13 +30,22 @@ public OnGameModeInit()
     SetWorldTime(12); SetWeather(10);
     AddPlayerClass(NYX_DEFAULT_SKIN_MALE,NYX_SPAWN_X,NYX_SPAWN_Y,NYX_SPAWN_Z,0.0,0,0,0,0,0,0);
     AddPlayerClass(NYX_DEFAULT_SKIN_FEMALE,NYX_SPAWN_X,NYX_SPAWN_Y,NYX_SPAWN_Z,0.0,0,0,0,0,0,0);
+    NYX_InitProperties();
+    SetTimer("NYX_AutoSave",60000,true);
     Create3DTextLabel("{8B5CF6}NYX ROLEPLAY\n{FFFFFF}Prefeitura / Centro",COLOR_WHITE,NYX_SPAWN_X,NYX_SPAWN_Y,21.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}HOSPITAL CENTRAL NYX",COLOR_WHITE,1520.0,-1675.0,15.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}DELEGACIA CENTRAL NYX",COLOR_WHITE,1550.0,-1600.0,15.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}CASSINO NYX",COLOR_WHITE,2200.0,-1670.0,16.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}SEX SHOP NYX",COLOR_WHITE,1350.0,-1740.0,15.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}IGREJA CENTRAL NYX",COLOR_WHITE,1420.0,-1710.0,15.0,30.0,0,1);
-    print("[NYX] GameMode: perfil High Clarity + empregos + orgs + NCoins + casamento + mundo + propriedades.");
+    print("[NYX] Core RP online: contas persistentes, banco, empregos, orgs, casamento, propriedades e NCoins.");
+    return 1;
+}
+
+public NYX_AutoSave()
+{
+    for(new i=0;i<MAX_PLAYERS;i++)
+        if(IsPlayerConnected(i) && NYX_Player[i][NYX_Logged]) NYX_SaveAccount(i);
     return 1;
 }
 
@@ -41,19 +54,23 @@ public OnPlayerConnect(playerid)
     NYX_ResetPlayer(playerid); NYX_ResetJob(playerid); NYX_ResetMarriage(playerid);
     NYX_PendingMarriage[playerid]=INVALID_PLAYER_ID;
     NYX_ApplyGraphicsProfile(playerid);
-    ShowPlayerDialog(playerid,D_LOGIN,DIALOG_STYLE_PASSWORD,"NYX ROLEPLAY | LOGIN","Bem-vindo ao NYX ROLEPLAY.\n\nDigite sua senha para entrar.\nSeu personagem inicia como mendigo.","ENTRAR","REGISTRAR");
+    if(NYX_AccountExists(playerid))
+        ShowPlayerDialog(playerid,D_LOGIN,DIALOG_STYLE_PASSWORD,"NYX ROLEPLAY | LOGIN","Conta encontrada.\n\nDigite sua senha para entrar.","ENTRAR","REGISTRAR");
+    else
+        ShowPlayerDialog(playerid,D_REGISTER,DIALOG_STYLE_PASSWORD,"NYX ROLEPLAY | REGISTRO","Nova conta NYX.\n\nCrie uma senha com pelo menos 4 caracteres.","CRIAR","SAIR");
     return 1;
 }
 
 public OnPlayerDisconnect(playerid,reason)
 {
+    if(NYX_Player[playerid][NYX_Logged]) NYX_SaveAccount(playerid);
     if(NYX_JobVehicleId[playerid]!=INVALID_VEHICLE_ID) DestroyVehicle(NYX_JobVehicleId[playerid]);
     NYX_ResetJob(playerid); NYX_ResetMarriage(playerid); return 1;
 }
 
 public OnPlayerRequestClass(playerid,classid)
 {
-    NYX_Player[playerid][NYX_Skin]=(classid==0)?NYX_DEFAULT_SKIN_MALE:NYX_DEFAULT_SKIN_FEMALE;
+    if(!NYX_Player[playerid][NYX_Logged]) return 1;
     SetPlayerSkin(playerid,NYX_Player[playerid][NYX_Skin]);
     SetPlayerCameraPos(playerid,1488.0,-1757.0,24.0);
     SetPlayerCameraLookAt(playerid,NYX_SPAWN_X,NYX_SPAWN_Y,19.0); return 1;
@@ -84,29 +101,38 @@ public OnDialogResponse(playerid,dialogid,response,listitem,inputtext[])
         {
             if(!response) return ShowPlayerDialog(playerid,D_REGISTER,DIALOG_STYLE_PASSWORD,"NYX | REGISTRO","Crie sua senha. Minimo 4 caracteres.","CRIAR","VOLTAR");
             if(strlen(inputtext)<4) return ShowPlayerDialog(playerid,D_LOGIN,DIALOG_STYLE_PASSWORD,"NYX | LOGIN","Senha muito curta.","ENTRAR","REGISTRAR");
-            NYX_Player[playerid][NYX_Logged]=1;
-            SendClientMessage(playerid,COLOR_SUCCESS,"Login realizado. Bem-vindo ao NYX ROLEPLAY!"); return 1;
+            new auth=NYX_LoadAccount(playerid,inputtext);
+            if(auth==1)
+            {
+                NYX_Player[playerid][NYX_Logged]=1;
+                ResetPlayerMoney(playerid); GivePlayerMoney(playerid,NYX_Player[playerid][NYX_Money]);
+                SendClientMessage(playerid,COLOR_SUCCESS,"Login realizado. Seus dados foram carregados.");
+                return 1;
+            }
+            if(auth==-1) return ShowPlayerDialog(playerid,D_LOGIN,DIALOG_STYLE_PASSWORD,"NYX | LOGIN","Senha incorreta.","ENTRAR","REGISTRAR");
+            return ShowPlayerDialog(playerid,D_REGISTER,DIALOG_STYLE_PASSWORD,"NYX | REGISTRO","Conta nao pode ser aberta agora. Tente novamente.","CRIAR","VOLTAR");
         }
         case D_REGISTER:
         {
-            if(!response) return ShowPlayerDialog(playerid,D_LOGIN,DIALOG_STYLE_PASSWORD,"NYX | LOGIN","Digite sua senha.","ENTRAR","REGISTRAR");
-            if(strlen(inputtext)<4) return ShowPlayerDialog(playerid,D_REGISTER,DIALOG_STYLE_PASSWORD,"NYX | REGISTRO","Senha muito curta.","CRIAR","VOLTAR");
-            NYX_Player[playerid][NYX_Logged]=1; NYX_Player[playerid][NYX_Money]=NYX_START_MONEY;
-            SendClientMessage(playerid,COLOR_SUCCESS,"Conta criada! Bem-vindo ao NYX ROLEPLAY!"); return 1;
+            if(!response) return 1;
+            if(strlen(inputtext)<4) return ShowPlayerDialog(playerid,D_REGISTER,DIALOG_STYLE_PASSWORD,"NYX | REGISTRO","Senha muito curta. Minimo 4 caracteres.","CRIAR","SAIR");
+            if(!NYX_CreateAccount(playerid,inputtext)) return ShowPlayerDialog(playerid,D_REGISTER,DIALOG_STYLE_PASSWORD,"NYX | REGISTRO","Esta conta ja existe.","CRIAR","SAIR");
+            NYX_Player[playerid][NYX_Logged]=1;
+            SendClientMessage(playerid,COLOR_SUCCESS,"Conta criada e salva. Bem-vindo ao NYX ROLEPLAY!"); return 1;
         }
         case D_SKINS:
         {
             if(!response) return 1;
             new skinid=strval(inputtext);
             if(!NYX_IsValidSkin(skinid)) return SendClientMessage(playerid,COLOR_ERROR,"Skin invalida. Use ID 0-311.");
-            NYX_Player[playerid][NYX_Skin]=skinid; SetPlayerSkin(playerid,skinid);
-            return SendClientMessage(playerid,COLOR_SUCCESS,"Skin equipada.");
+            NYX_Player[playerid][NYX_Skin]=skinid; SetPlayerSkin(playerid,skinid); NYX_SaveAccount(playerid);
+            return SendClientMessage(playerid,COLOR_SUCCESS,"Skin equipada e salva.");
         }
         case D_ORGS:
         {
             if(!response||!NYX_IsValidOrg(listitem)) return 1;
             new info[320];
-            format(info,sizeof info,"Organizacao: %s\nStatus: %s\nCargos: 1-%d\n\nA mesma organizacao atua em todo o mapa.\nLideranca, recrutamento e promocoes sao controlados pelo sistema.",NYX_OrgName[listitem],NYX_OrgActive[listitem]?"ATIVA":"OFFLINE",NYX_MAX_RANKS);
+            format(info,sizeof info,"Organizacao: %s\nStatus: %s\nCargos: 1-%d\n\nA mesma organizacao atua em todo o mapa.\nLideranca, recrutamento e promocoes ficam vinculados ao personagem.",NYX_OrgName[listitem],NYX_OrgActive[listitem]?"ATIVA":"OFFLINE",NYX_MAX_RANKS);
             return ShowPlayerDialog(playerid,D_HELP,DIALOG_STYLE_MSGBOX,"NYX | ORGANIZACAO",info,"OK","");
         }
         case D_JOBS:
@@ -119,7 +145,14 @@ public OnDialogResponse(playerid,dialogid,response,listitem,inputtext[])
         case D_STORE:
         {
             if(!response) return 1;
-            return SendClientMessage(playerid,COLOR_NYX,"NCoins sao moeda premium. Compras com dinheiro real devem passar pelo backend oficial.");
+            return SendClientMessage(playerid,COLOR_NYX,"NCoins sao moeda premium. Compras reais devem passar pelo backend oficial.");
+        }
+        case D_BANK:
+        {
+            if(!response) return 1;
+            if(listitem==0) return SendClientMessage(playerid,COLOR_NYX,"Use /depositar valor para depositar.");
+            if(listitem==1) return SendClientMessage(playerid,COLOR_NYX,"Use /sacar valor para sacar.");
+            return 1;
         }
     }
     return 1;
@@ -152,10 +185,18 @@ stock NYX_ConcludeJob(playerid)
 {
     if(!NYX_JobRunning[playerid]) return SendClientMessage(playerid,COLOR_WARNING,"Nenhum servico em andamento.");
     new job=NYX_PlayerJob[playerid],pay=NYX_JobPay[job];
-    GivePlayerMoney(playerid,pay); NYX_Player[playerid][NYX_Money]=GetPlayerMoney(playerid);
+    GivePlayerMoney(playerid,pay); NYX_SyncMoney(playerid); NYX_SaveAccount(playerid);
     NYX_JobRunning[playerid]=false; DisablePlayerCheckpoint(playerid);
     if(NYX_JobVehicleId[playerid]!=INVALID_VEHICLE_ID){RemovePlayerFromVehicle(playerid);DestroyVehicle(NYX_JobVehicleId[playerid]);NYX_JobVehicleId[playerid]=INVALID_VEHICLE_ID;}
     new msg[96]; format(msg,sizeof msg,"Servico concluido! +$%d",pay); return SendClientMessage(playerid,COLOR_SUCCESS,msg);
+}
+
+stock NYX_ShowBank(playerid)
+{
+    new list[256],msg[128];
+    format(msg,sizeof msg,"Saldo em especie: $%d\nSaldo bancario: $%d\n\nUse os comandos /depositar e /sacar.",GetPlayerMoney(playerid),NYX_Bank[playerid]);
+    format(list,sizeof list,"Consultar saldo\nDepositar dinheiro\nSacar dinheiro");
+    return ShowPlayerDialog(playerid,D_BANK,DIALOG_STYLE_LIST,"NYX | BANCO",list,"SELECIONAR","FECHAR");
 }
 
 public OnPlayerCommandText(playerid,cmdtext[])
@@ -170,16 +211,36 @@ public OnPlayerCommandText(playerid,cmdtext[])
     if(!strcmp(cmdtext,"/empregos",true)) return NYX_ShowJobs(playerid);
     if(!strcmp(cmdtext,"/trabalhar",true)) return NYX_StartJob(playerid);
     if(!strcmp(cmdtext,"/concluir",true)) return NYX_ConcludeJob(playerid);
+    if(!strcmp(cmdtext,"/banco",true)) return NYX_ShowBank(playerid);
+    if(!strncmp(cmdtext,"/depositar ",11,true))
+    {
+        new amount=strval(cmdtext[11]);
+        if(!NYX_Deposit(playerid,amount)) return SendClientMessage(playerid,COLOR_ERROR,"Deposito invalido ou saldo em especie insuficiente.");
+        new msg[96];format(msg,sizeof msg,"Deposito realizado: $%d | Banco: $%d",amount,NYX_Bank[playerid]);return SendClientMessage(playerid,COLOR_SUCCESS,msg);
+    }
+    if(!strncmp(cmdtext,"/sacar ",7,true))
+    {
+        new amount=strval(cmdtext[7]);
+        if(!NYX_Withdraw(playerid,amount)) return SendClientMessage(playerid,COLOR_ERROR,"Saque invalido ou saldo bancario insuficiente.");
+        new msg[96];format(msg,sizeof msg,"Saque realizado: $%d | Banco: $%d",amount,NYX_Bank[playerid]);return SendClientMessage(playerid,COLOR_SUCCESS,msg);
+    }
+    if(!strcmp(cmdtext,"/conta",true))
+    {
+        new name[MAX_PLAYER_NAME],msg[192];GetPlayerName(playerid,name,sizeof name);
+        format(msg,sizeof msg,"NYX | Conta: %s | Dinheiro: $%d | Banco: $%d | NCoins: %d | Admin: %d",name,GetPlayerMoney(playerid),NYX_Bank[playerid],NYX_Player[playerid][NYX_NCoins],NYX_Player[playerid][NYX_Admin]);
+        return SendClientMessage(playerid,COLOR_WHITE,msg);
+    }
+    if(!strcmp(cmdtext,"/salvar",true)){NYX_SyncMoney(playerid);NYX_SaveAccount(playerid);return SendClientMessage(playerid,COLOR_SUCCESS,"Conta salva.");}
     if(!strcmp(cmdtext,"/lanchonetes",true)) return NYX_ShowFood(playerid);
     if(!strcmp(cmdtext,"/imoveis",true)) return NYX_ShowProperties(playerid);
     if(!strcmp(cmdtext,"/leilao",true)) return NYX_ShowAuction(playerid);
     if(!strcmp(cmdtext,"/familias",true)) return NYX_ShowFamilies(playerid);
-    if(!strcmp(cmdtext,"/skin",true)) return ShowPlayerDialog(playerid,D_SKINS,DIALOG_STYLE_INPUT,"NYX | SKINS","Digite o ID da skin (0-311).\n1 = mendigo masculino\n2 = mendigo feminino","USAR","FECHAR");
+    if(!strcmp(cmdtext,"/skin",true)) return ShowPlayerDialog(playerid,D_SKINS,DIALOG_STYLE_INPUT,"NYX | SKINS","Digite o ID da skin (0-311).","USAR","FECHAR");
     if(!strcmp(cmdtext,"/status",true))
     {
         new job[48],org[64];NYX_GetJobName(NYX_PlayerJob[playerid],job,sizeof job);format(org,sizeof org,"Civil");
         if(NYX_IsValidOrg(NYX_Player[playerid][NYX_Org]))format(org,sizeof org,"%s",NYX_OrgName[NYX_Player[playerid][NYX_Org]]);
-        new msg[256];format(msg,sizeof msg,"NYX | Dinheiro: $%d | NCoins: %d | Skin: %d | Emprego: %s | Org: %s",GetPlayerMoney(playerid),NYX_Player[playerid][NYX_NCoins],NYX_Player[playerid][NYX_Skin],job,org);
+        new msg[256];format(msg,sizeof msg,"NYX | Dinheiro: $%d | Banco: $%d | NCoins: %d | Skin: %d | Emprego: %s | Org: %s",GetPlayerMoney(playerid),NYX_Bank[playerid],NYX_Player[playerid][NYX_NCoins],NYX_Player[playerid][NYX_Skin],job,org);
         return SendClientMessage(playerid,COLOR_WHITE,msg);
     }
     if(!strcmp(cmdtext,"/ncoins",true)){new msg[96];format(msg,sizeof msg,"Seu saldo: %d NCoins.",NYX_Player[playerid][NYX_NCoins]);return SendClientMessage(playerid,COLOR_NYX,msg);}
@@ -201,6 +262,6 @@ public OnPlayerCommandText(playerid,cmdtext[])
     if(!strcmp(cmdtext,"/divorcio",true)){if(!NYX_Divorce(playerid))return SendClientMessage(playerid,COLOR_WARNING,"Voce nao esta casado.");return SendClientMessage(playerid,COLOR_SUCCESS,"Divorcio realizado.");}
     if(!strcmp(cmdtext,"/loja",true))return ShowPlayerDialog(playerid,D_STORE,DIALOG_STYLE_MSGBOX,"NYX | NCOINS","Moeda premium NYX.\nSkins premium podem usar NCoins.\nCompras reais devem ser processadas pelo backend oficial.","OK","");
     if(!strcmp(cmdtext,"/gps",true)){SetPlayerCheckpoint(playerid,NYX_SPAWN_X,NYX_SPAWN_Y,NYX_SPAWN_Z,4.0);return SendClientMessage(playerid,COLOR_SUCCESS,"GPS marcado: Centro / Prefeitura NYX.");}
-    if(!strcmp(cmdtext,"/ajuda",true))return ShowPlayerDialog(playerid,D_HELP,DIALOG_STYLE_MSGBOX,"NYX | AJUDA","/empregos /trabalhar /concluir\n/orgs /status /skin\n/lanchonetes /imoveis /leilao /familias\n/ncoins /loja\n/casar ID /aceitarcasamento /divorcio\n/mundo /gps","FECHAR","");
+    if(!strcmp(cmdtext,"/ajuda",true))return ShowPlayerDialog(playerid,D_HELP,DIALOG_STYLE_MSGBOX,"NYX | AJUDA","/banco /depositar /sacar /conta /salvar\n/empregos /trabalhar /concluir\n/orgs /status /skin\n/lanchonetes /imoveis /leilao /familias\n/ncoins /loja\n/casar ID /aceitarcasamento /divorcio\n/mundo /gps","FECHAR","");
     return 0;
 }
