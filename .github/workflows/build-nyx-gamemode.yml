@@ -1,0 +1,60 @@
+name: Build NYX GameMode
+
+on:
+  push:
+    paths:
+      - 'gamemodes/**'
+      - 'pawno/include/**'
+      - '.github/workflows/build-nyx-gamemode.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Pawn compiler
+        run: |
+          curl -L --fail -o pawnc.tar.gz https://github.com/openmultiplayer/compiler/releases/download/v3.10.11/pawnc-3.10.11-linux.tar.gz
+          mkdir -p pawnc
+          tar -xzf pawnc.tar.gz -C pawnc
+
+      - name: Get SA-MP includes
+        run: |
+          git clone --depth 1 https://github.com/openmultiplayer/omp-stdlib.git omp-stdlib
+          mkdir -p build/include
+          cp omp-stdlib/*.inc build/include/
+          cp pawno/include/*.inc build/include/ 2>/dev/null || true
+
+      - name: Compile NYX
+        run: |
+          COMPILER=$(find pawnc -type f -name pawncc | head -1)
+          test -n "$COMPILER"
+          chmod +x "$COMPILER"
+          export LD_LIBRARY_PATH="$(dirname "$COMPILER")/../lib:${LD_LIBRARY_PATH}"
+          mkdir -p build/gamemodes
+          "$COMPILER" "gamemodes/nyx_roleplay.pwn" "-i pawno/include" "-i build/include" "-;+" "-(+" "-Z-" "-d0" "-O2" "-t4" "-o:build/gamemodes/nyx_roleplay"
+
+      - name: Verify AMX
+        run: |
+          test -s build/gamemodes/nyx_roleplay.amx
+          file build/gamemodes/nyx_roleplay.amx
+          ls -lh build/gamemodes/nyx_roleplay.amx
+
+      - name: Assemble NYX server package
+        run: |
+          mkdir -p release/gamemodes
+          cp build/gamemodes/nyx_roleplay.amx release/gamemodes/nyx_roleplay.amx
+          if [ -f server.cfg ]; then cp server.cfg release/server.cfg; fi
+          test -s release/gamemodes/nyx_roleplay.amx
+          cd release
+          zip -r ../nyx-roleplay-server.zip .
+
+      - name: Upload NYX server package
+        uses: actions/upload-artifact@v4
+        with:
+          name: nyx-roleplay-server
+          path: nyx-roleplay-server.zip
+          if-no-files-found: error
