@@ -202,6 +202,7 @@ stock NYX_ShowBank(playerid)
 public OnPlayerCommandText(playerid,cmdtext[])
 {
     if(!NYX_Player[playerid][NYX_Logged]) return 1;
+    if(NYX_HandleCompletionCommand(playerid,cmdtext)) return 1;
     if(!strcmp(cmdtext,"/orgs",true))
     {
         new list[2048],line[96];list[0]=EOS;
@@ -262,6 +263,6 @@ public OnPlayerCommandText(playerid,cmdtext[])
     if(!strcmp(cmdtext,"/divorcio",true)){if(!NYX_Divorce(playerid))return SendClientMessage(playerid,COLOR_WARNING,"Voce nao esta casado.");return SendClientMessage(playerid,COLOR_SUCCESS,"Divorcio realizado.");}
     if(!strcmp(cmdtext,"/loja",true))return ShowPlayerDialog(playerid,D_STORE,DIALOG_STYLE_MSGBOX,"NYX | NCOINS","Moeda premium NYX.\nSkins premium podem usar NCoins.\nCompras reais devem ser processadas pelo backend oficial.","OK","");
     if(!strcmp(cmdtext,"/gps",true)){SetPlayerCheckpoint(playerid,NYX_SPAWN_X,NYX_SPAWN_Y,NYX_SPAWN_Z,4.0);return SendClientMessage(playerid,COLOR_SUCCESS,"GPS marcado: Centro / Prefeitura NYX.");}
-    if(!strcmp(cmdtext,"/ajuda",true))return ShowPlayerDialog(playerid,D_HELP,DIALOG_STYLE_MSGBOX,"NYX | AJUDA","/banco /depositar /sacar /conta /salvar\n/empregos /trabalhar /concluir\n/orgs /status /skin\n/lanchonetes /imoveis /leilao /familias\n/ncoins /loja\n/casar ID /aceitarcasamento /divorcio\n/mundo /gps","FECHAR","");
+    if(!strcmp(cmdtext,"/ajuda",true))return ShowPlayerDialog(playerid,D_HELP,DIALOG_STYLE_MSGBOX,"NYX | AJUDA","/necessidades /comer /beber /passaporte /negocios\n/garagem /guardarveiculo ID /assaltar\n/pesca /pescar /pararpesca /sistemas /diferenciais\n/banco /depositar /sacar /conta /salvar\n/empregos /trabalhar /concluir\n/orgs /status /skin\n/lanchonetes /imoveis /leilao /familias\n/ncoins /loja\n/casar ID /aceitarcasamento /divorcio\n/mundo /gps","FECHAR","");
     return 0;
 }
