@@ -4,9 +4,7 @@
 #define _NYX_LEGACY_INCLUDED
 
 // NYX legacy integration layer.
-// Reimplements compatible systems observed across the supplied RP bases:
-// Galaxy-RP, Brasil Paradise City, Patriota, Dejavu, StyleReal, South City,
-// Maldivas City, Cidade Alta Mobile and After City.
+// Reimplements compatible systems observed across the supplied RP bases.
 
 #define NYX_NEED_MAX 100
 #define NYX_LEGACY_BUSINESS_COUNT 8
@@ -19,6 +17,8 @@ new NYX_GarageVehicle[MAX_PLAYERS];
 new NYX_GarageModel[MAX_PLAYERS];
 new NYX_RobberyCooldown[MAX_PLAYERS];
 new NYX_MobileMode[MAX_PLAYERS];
+new bool:NYX_Fishing[MAX_PLAYERS];
+new NYX_FishCooldown[MAX_PLAYERS];
 
 new const NYX_LegacyBusinessName[NYX_LEGACY_BUSINESS_COUNT][] = {
     "Mercado NYX", "Oficina NYX", "Hospital NYX", "Posto NYX",
@@ -38,6 +38,8 @@ stock NYX_LegacyInitPlayer(playerid)
     NYX_GarageModel[playerid]=0;
     NYX_RobberyCooldown[playerid]=0;
     NYX_MobileMode[playerid]=0;
+    NYX_Fishing[playerid]=false;
+    NYX_FishCooldown[playerid]=0;
     return 1;
 }
 
@@ -48,6 +50,7 @@ stock NYX_LegacyTick(playerid)
     if(NYX_Thirst[playerid]>0) NYX_Thirst[playerid]--;
     if(NYX_Stress[playerid]>0) NYX_Stress[playerid]--;
     if(NYX_RobberyCooldown[playerid]>0) NYX_RobberyCooldown[playerid]--;
+    if(NYX_FishCooldown[playerid]>0) NYX_FishCooldown[playerid]--;
     if(NYX_Hunger[playerid] < 20 || NYX_Thirst[playerid] < 20)
         SendClientMessage(playerid,0xFFFF66FF,"[NYX] Suas necessidades estao baixas. Procure uma lanchonete ou mercado.");
     return 1;
@@ -135,4 +138,41 @@ stock NYX_ShowLegacySystems(playerid)
 {
     SendClientMessage(playerid,0x8B5CF6FF,"[NYX] Sistemas integrados: necessidades, passaporte, garagem, negocios, assalto e modo mobile.");
     return 1;
+}
+
+// Fishing system consolidated from the supplied RP bases.
+stock NYX_StartFishing(playerid)
+{
+    if(NYX_Fishing[playerid]) return SendClientMessage(playerid,0xFFFF66FF,"[NYX] Voce ja esta pescando.");
+    if(NYX_FishCooldown[playerid]>0) return SendClientMessage(playerid,0xFFFF66FF,"[NYX] Aguarde antes de pescar novamente.");
+    NYX_Fishing[playerid]=true;
+    NYX_FishCooldown[playerid]=15;
+    SendClientMessage(playerid,0x66CCFFFF,"[NYX] Pescaria iniciada. Use /pescar para tentar fisgar um peixe.");
+    return 1;
+}
+
+stock NYX_CatchFish(playerid)
+{
+    if(!NYX_Fishing[playerid]) return SendClientMessage(playerid,0xFFFF66FF,"[NYX] Voce nao esta pescando. Use /pesca.");
+    if(random(100)<30) return SendClientMessage(playerid,0xFFFF66FF,"[NYX] Nada fisgou desta vez. Tente novamente.");
+    new reward=150+random(351);
+    GivePlayerMoney(playerid,reward);
+    NYX_Fishing[playerid]=false;
+    NYX_SyncMoney(playerid);
+    new msg[96]; format(msg,sizeof msg,"[NYX] Peixe capturado! Venda do peixe: +$%d",reward);
+    return SendClientMessage(playerid,0x66CCFFFF,msg);
+}
+
+stock NYX_StopFishing(playerid)
+{
+    if(!NYX_Fishing[playerid]) return SendClientMessage(playerid,0xFFFF66FF,"[NYX] Voce nao esta pescando.");
+    NYX_Fishing[playerid]=false;
+    return SendClientMessage(playerid,0xFFFFFFFF,"[NYX] Pescaria encerrada.");
+}
+
+stock NYX_ShowPremiumFeatures(playerid)
+{
+    new msg[192];
+    format(msg,sizeof msg,"NYX PREMIUM | NCoins: %d | Loja: /loja | Recursos premium sao controlados pelo saldo da conta.",NYX_Player[playerid][NYX_NCoins]);
+    return SendClientMessage(playerid,0x8B5CF6FF,msg);
 }
