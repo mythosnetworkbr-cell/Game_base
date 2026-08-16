@@ -6,7 +6,6 @@
 stock NYX_HandleCompletionCommand(playerid, cmdtext[])
 {
     if(NYX_PoliceCommands(playerid,cmdtext)) return 1;
-    if(NYX_MedicalCommands(playerid,cmdtext)) return 1;
     if(!strcmp(cmdtext,"/necessidades",true)) return NYX_ShowNeeds(playerid);
     if(!strcmp(cmdtext,"/comer",true)) return NYX_Eat(playerid,25);
     if(!strcmp(cmdtext,"/beber",true)) return NYX_Drink(playerid,25);
@@ -24,7 +23,6 @@ stock NYX_HandleCompletionCommand(playerid, cmdtext[])
     if(!strcmp(cmdtext,"/pararpesca",true)) return NYX_StopFishing(playerid);
     if(!strcmp(cmdtext,"/diferenciais",true)) return NYX_ShowPremiumFeatures(playerid);
     if(NYX_InventoryCommands(playerid,cmdtext)) return 1;
-
     if(strfind(cmdtext,"/guardarveiculo ",true)==0)
     {
         new model=strval(cmdtext[16]);
