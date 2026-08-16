@@ -8,6 +8,7 @@
 #include <nyx_world>
 #include <nyx_properties>
 #include <nyx_graphics>
+#include <nyx_mobile>
 
 #define D_LOGIN 1000
 #define D_REGISTER 1001
@@ -32,7 +33,7 @@ public OnGameModeInit()
     Create3DTextLabel("{8B5CF6}CASSINO NYX",COLOR_WHITE,2200.0,-1670.0,16.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}SEX SHOP NYX",COLOR_WHITE,1350.0,-1740.0,15.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}IGREJA CENTRAL NYX",COLOR_WHITE,1420.0,-1710.0,15.0,30.0,0,1);
-    print("[NYX] GameMode: perfil High Clarity + empregos + orgs + NCoins + casamento + mundo + propriedades.");
+    print("[NYX] GameMode: perfil High Clarity + empregos + orgs + NCoins + casamento + mundo + propriedades + mobile.");
     return 1;
 }
 
@@ -184,6 +185,13 @@ public OnPlayerCommandText(playerid,cmdtext[])
     }
     if(!strcmp(cmdtext,"/ncoins",true)){new msg[96];format(msg,sizeof msg,"Seu saldo: %d NCoins.",NYX_Player[playerid][NYX_NCoins]);return SendClientMessage(playerid,COLOR_NYX,msg);}
     if(!strcmp(cmdtext,"/mundo",true)) return NYX_ShowWorldInfo(playerid);
+    if(!strcmp(cmdtext,"/mobileinfo",true))
+    {
+        new payload[512];
+        NYX_MobileBuildState(playerid,payload,sizeof payload);
+        SendClientMessage(playerid,COLOR_NYX,"NYX Mobile | protocolo pronto para bridge nativa.");
+        return SendClientMessage(playerid,COLOR_WHITE,payload);
+    }
     if(!strcmp(cmdtext,"/casamento",true)) return NYX_MarriageExplain(playerid);
     if(!strncmp(cmdtext,"/casar ",7,true))
     {
@@ -201,6 +209,6 @@ public OnPlayerCommandText(playerid,cmdtext[])
     if(!strcmp(cmdtext,"/divorcio",true)){if(!NYX_Divorce(playerid))return SendClientMessage(playerid,COLOR_WARNING,"Voce nao esta casado.");return SendClientMessage(playerid,COLOR_SUCCESS,"Divorcio realizado.");}
     if(!strcmp(cmdtext,"/loja",true))return ShowPlayerDialog(playerid,D_STORE,DIALOG_STYLE_MSGBOX,"NYX | NCOINS","Moeda premium NYX.\nSkins premium podem usar NCoins.\nCompras reais devem ser processadas pelo backend oficial.","OK","");
     if(!strcmp(cmdtext,"/gps",true)){SetPlayerCheckpoint(playerid,NYX_SPAWN_X,NYX_SPAWN_Y,NYX_SPAWN_Z,4.0);return SendClientMessage(playerid,COLOR_SUCCESS,"GPS marcado: Centro / Prefeitura NYX.");}
-    if(!strcmp(cmdtext,"/ajuda",true))return ShowPlayerDialog(playerid,D_HELP,DIALOG_STYLE_MSGBOX,"NYX | AJUDA","/empregos /trabalhar /concluir\n/orgs /status /skin\n/lanchonetes /imoveis /leilao /familias\n/ncoins /loja\n/casar ID /aceitarcasamento /divorcio\n/mundo /gps","FECHAR","");
+    if(!strcmp(cmdtext,"/ajuda",true))return ShowPlayerDialog(playerid,D_HELP,DIALOG_STYLE_MSGBOX,"NYX | AJUDA","/empregos /trabalhar /concluir\n/orgs /status /skin /mobileinfo\n/lanchonetes /imoveis /leilao /familias\n/ncoins /loja\n/casar ID /aceitarcasamento /divorcio\n/mundo /gps","FECHAR","");
     return 0;
 }
