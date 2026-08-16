@@ -23,6 +23,7 @@ stock NYX_HandleCompletionCommand(playerid, cmdtext[])
     if(!strcmp(cmdtext,"/pescar",true)) return NYX_CatchFish(playerid);
     if(!strcmp(cmdtext,"/pararpesca",true)) return NYX_StopFishing(playerid);
     if(!strcmp(cmdtext,"/diferenciais",true)) return NYX_ShowPremiumFeatures(playerid);
+    if(NYX_InventoryCommands(playerid,cmdtext)) return 1;
 
     if(strfind(cmdtext,"/guardarveiculo ",true)==0)
     {
