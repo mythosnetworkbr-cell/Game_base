@@ -11,11 +11,12 @@ enum E_NYX_PLAYER {
     NYX_Logged,
     NYX_Skin,
     NYX_Money,
-    NYX_NCoins,
+    NYX_PlayerNCoins,
     NYX_Org,
     NYX_OrgRank,
     NYX_Admin
 };
+#define NYX_NCoins NYX_PlayerNCoins
 
 new NYX_Player[MAX_PLAYERS][E_NYX_PLAYER];
 new NYX_Bank[MAX_PLAYERS];
