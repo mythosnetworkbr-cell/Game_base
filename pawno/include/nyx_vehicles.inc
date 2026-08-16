@@ -64,46 +64,6 @@ stock NYX_VehicleRegister(playerid,slot,modelid)
     return 1;
 }
 
-stock NYX_VehicleSpawn(playerid,slot)
-{
-    if(slot<0 || slot>=NYX_VEHICLE_SLOTS || NYX_VehicleOwnedModel[playerid][slot]<=0) return 0;
-    NYX_VehicleDestroy(playerid,slot);
-    new Float:x,Float:y,Float:z,Float:a;
-    GetPlayerPos(playerid,x,y,z); GetPlayerFacingAngle(playerid,a);
-    NYX_VehicleWorldId[playerid][slot]=CreateVehicle(NYX_VehicleOwnedModel[playerid][slot],x+3.0,y,z,a,NYX_VehicleColor1[playerid][slot],NYX_VehicleColor2[playerid][slot],300);
-    if(NYX_VehicleWorldId[playerid][slot]==INVALID_VEHICLE_ID) return 0;
-    SetVehicleHealth(NYX_VehicleWorldId[playerid][slot],NYX_VehicleHealth[playerid][slot]);
-    return 1;
-}
-
-stock NYX_VehicleStore(playerid,slot)
-{
-    if(slot<0 || slot>=NYX_VEHICLE_SLOTS) return 0;
-    if(NYX_VehicleWorldId[playerid][slot]==INVALID_VEHICLE_ID) return 0;
-    new Float:health;
-    GetVehicleHealth(NYX_VehicleWorldId[playerid][slot],health);
-    NYX_VehicleHealth[playerid][slot]=health;
-    NYX_VehicleDestroy(playerid,slot);
-    return 1;
-}
-
-stock NYX_VehicleBuy(playerid,slot,modelid)
-{
-    if(slot<0 || slot>=NYX_VEHICLE_SLOTS || modelid<400 || modelid>611) return 0;
-    if(NYX_VehicleOwnedModel[playerid][slot]>0) return 0;
-    if(GetPlayerMoney(playerid)<NYX_VEHICLE_PRICE) return 0;
-    GivePlayerMoney(playerid,-NYX_VEHICLE_PRICE);
-    NYX_SyncMoney(playerid);
-    if(!NYX_VehicleRegister(playerid,slot,modelid))
-    {
-        GivePlayerMoney(playerid,NYX_VEHICLE_PRICE);
-        NYX_SyncMoney(playerid);
-        return 0;
-    }
-    NYX_SaveAccount(playerid);
-    return 1;
-}
-
 stock NYX_VehicleList(playerid)
 {
     new msg[128];
@@ -115,22 +75,6 @@ stock NYX_VehicleList(playerid)
         else
             format(msg,sizeof msg,"Vaga %d: modelo %d | combustivel %.0f%% | saude %.0f",slot+1,NYX_VehicleOwnedModel[playerid][slot],NYX_VehicleFuel[playerid][slot],NYX_VehicleHealth[playerid][slot]);
         SendClientMessage(playerid,COLOR_WHITE,msg);
-    }
-    return 1;
-}
-
-stock NYX_VehicleTick(playerid)
-{
-    for(new slot=0;slot<NYX_VEHICLE_SLOTS;slot++)
-    {
-        new vehicleid=NYX_VehicleWorldId[playerid][slot];
-        if(vehicleid==INVALID_VEHICLE_ID) continue;
-        if(GetPlayerVehicleID(playerid)==vehicleid && GetPlayerState(playerid)==PLAYER_STATE_DRIVER)
-        {
-            if(NYX_VehicleFuel[playerid][slot]>0.0) NYX_VehicleFuel[playerid][slot]-=0.25;
-            if(NYX_VehicleFuel[playerid][slot]<0.0) NYX_VehicleFuel[playerid][slot]=0.0;
-            if(NYX_VehicleFuel[playerid][slot]<=0.0) SetVehicleVelocity(vehicleid,0.0,0.0,0.0);
-        }
     }
     return 1;
 }
