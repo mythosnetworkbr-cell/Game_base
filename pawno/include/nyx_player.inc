@@ -7,6 +7,8 @@
 #define NYX_LAST_SKIN_ID 311
 #define NYX_BANK_START 10000
 
+#include <nyx_inventory>
+
 enum E_NYX_PLAYER {
     NYX_Logged,
     NYX_Skin,
@@ -50,6 +52,7 @@ stock NYX_ResetPlayer(playerid)
     NYX_Bank[playerid] = NYX_BANK_START;
     NYX_AccountPassword[playerid][0] = EOS;
     NYX_AccountLoaded[playerid] = false;
+    NYX_InventoryReset(playerid);
     NYX_LegacyInitPlayer(playerid);
     return 1;
 }
@@ -70,6 +73,11 @@ stock NYX_SaveAccount(playerid)
     format(line,sizeof line,"%d",NYX_Player[playerid][NYX_Org]); fwrite(file,line);
     format(line,sizeof line,"%d",NYX_Player[playerid][NYX_OrgRank]); fwrite(file,line);
     format(line,sizeof line,"%d",NYX_Player[playerid][NYX_Admin]); fwrite(file,line);
+    for(new i=0;i<NYX_INV_SLOTS;i++)
+    {
+        format(line,sizeof line,"%d",NYX_InvItem[playerid][i]); fwrite(file,line);
+        format(line,sizeof line,"%d",NYX_InvAmount[playerid][i]); fwrite(file,line);
+    }
     fclose(file);
     return 1;
 }
@@ -90,6 +98,14 @@ stock NYX_LoadAccount(playerid,password[])
     fread(file,line,sizeof line); NYX_Player[playerid][NYX_Org]=strval(line);
     fread(file,line,sizeof line); NYX_Player[playerid][NYX_OrgRank]=strval(line);
     fread(file,line,sizeof line); NYX_Player[playerid][NYX_Admin]=strval(line);
+    NYX_InventoryReset(playerid);
+    for(new i=0;i<NYX_INV_SLOTS;i++)
+    {
+        if(!fread(file,line,sizeof line)) break;
+        NYX_InvItem[playerid][i]=strval(line);
+        if(!fread(file,line,sizeof line)) break;
+        NYX_InvAmount[playerid][i]=strval(line);
+    }
     fclose(file);
     NYX_AccountLoaded[playerid]=true;
     return 1;
@@ -106,6 +122,7 @@ stock NYX_CreateAccount(playerid,password[])
     NYX_Player[playerid][NYX_OrgRank]=0;
     NYX_Player[playerid][NYX_Admin]=0;
     NYX_AccountLoaded[playerid]=true;
+    NYX_InventoryGiveStarter(playerid);
     NYX_IssuePassport(playerid);
     return NYX_SaveAccount(playerid);
 }
