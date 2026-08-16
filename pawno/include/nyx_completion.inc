@@ -15,7 +15,7 @@ stock NYX_HandleCompletionCommand(playerid, cmdtext[])
     if(!strcmp(cmdtext,"/negocios",true)) return NYX_ShowBusinesses(playerid);
     if(!strcmp(cmdtext,"/assaltar",true)) return NYX_TryRobbery(playerid);
     if(!strcmp(cmdtext,"/sistemas",true)) return NYX_ShowLegacySystems(playerid);
-    if(!strcmp(cmdtext,"/garagem",true)) return NYX_ShowGarage(playerid);
+    if(!strcmp(cmdtext,"/garagem",true)) return NYX_VehicleList(playerid);
     if(!strcmp(cmdtext,"/veiculos",true)) return NYX_VehicleList(playerid);
     if(!strcmp(cmdtext,"/pesca",true)) return NYX_StartFishing(playerid);
     if(!strcmp(cmdtext,"/pescar",true)) return NYX_CatchFish(playerid);
@@ -32,10 +32,8 @@ stock NYX_HandleCompletionCommand(playerid, cmdtext[])
     {
         new slot=strval(cmdtext[14])-1;
         new model=0;
-        new space[8];
-        format(space,sizeof space,"%s",cmdtext[14]);
         new p=strfind(cmdtext," ",true,14);
-        if(p!=-1) { slot=strval(cmdtext[14])-1; model=strval(cmdtext[p+1]); }
+        if(p!=-1) model=strval(cmdtext[p+1]);
         if(model<=0) return SendClientMessage(playerid,COLOR_WARNING,"Use /comprarcarro VAGA MODELO. Ex.: /comprarcarro 1 411");
         if(!NYX_VehicleBuyOwned(playerid,slot,model)) return SendClientMessage(playerid,COLOR_ERROR,"Nao foi possivel comprar: vaga ocupada, modelo invalido ou dinheiro insuficiente.");
         return SendClientMessage(playerid,COLOR_SUCCESS,"Veiculo comprado e salvo na garagem.");
@@ -52,7 +50,7 @@ stock NYX_HandleCompletionCommand(playerid, cmdtext[])
         if(!NYX_VehicleStoreOwned(playerid,slot)) return SendClientMessage(playerid,COLOR_WARNING,"Nao ha veiculo dessa vaga ativo para guardar.");
         return SendClientMessage(playerid,COLOR_SUCCESS,"Veiculo guardado e estado salvo.");
     }
-    if(strfind(cmdtext,"/statuscompleto",true)==0)
+    if(!strcmp(cmdtext,"/statuscompleto",true))
     {
         new msg[220];
         format(msg,sizeof msg,"NYX | Fome %d | Sede %d | Stress %d | Passaporte %s | Mobile %s | Cooldown assalto %d",NYX_Hunger[playerid],NYX_Thirst[playerid],NYX_Stress[playerid],NYX_Passport[playerid]?"OK":"PENDENTE",NYX_MobileMode[playerid]?"ON":"OFF",NYX_RobberyCooldown[playerid]);
