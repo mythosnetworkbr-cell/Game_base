@@ -4,7 +4,7 @@
 #define _NYX_CONFIG_INCLUDED
 
 #define NYX_SERVER_NAME "NYX ROLEPLAY"
-#define NYX_VERSION "1.4.0"
+#define NYX_VERSION "1.5.0"
 #define NYX_SPAWN_X 1481.0
 #define NYX_SPAWN_Y -1771.0
 #define NYX_SPAWN_Z 18.8
@@ -47,3 +47,4 @@ new const NYX_SKIN_CATALOG[] = {
 
 #include <nyx_legacy>
 #include <nyx_completion>
+#include <nyx_inventory>
