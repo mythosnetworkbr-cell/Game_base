@@ -49,12 +49,14 @@ stock NYX_ResetPlayer(playerid)
     NYX_Bank[playerid] = NYX_BANK_START;
     NYX_AccountPassword[playerid][0] = EOS;
     NYX_AccountLoaded[playerid] = false;
+    NYX_LegacyInitPlayer(playerid);
     return 1;
 }
 
 stock NYX_SaveAccount(playerid)
 {
     if(!NYX_AccountLoaded[playerid]) return 0;
+    NYX_LegacyTick(playerid);
     new path[96],line[128],file;
     NYX_AccountFile(playerid,path,sizeof path);
     file=fopen(path,io_write);
@@ -103,6 +105,7 @@ stock NYX_CreateAccount(playerid,password[])
     NYX_Player[playerid][NYX_OrgRank]=0;
     NYX_Player[playerid][NYX_Admin]=0;
     NYX_AccountLoaded[playerid]=true;
+    NYX_IssuePassport(playerid);
     return NYX_SaveAccount(playerid);
 }
 
