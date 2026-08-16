@@ -8,6 +8,7 @@
 #include <nyx_world>
 #include <nyx_properties>
 #include <nyx_graphics>
+#include <nyx_rp_advanced>
 
 #define D_LOGIN 1000
 #define D_REGISTER 1001
@@ -20,7 +21,6 @@
 #define D_PROFILE 1008
 
 new NYX_PendingMarriage[MAX_PLAYERS];
-
 forward NYX_AutoSave();
 
 public OnGameModeInit()
@@ -31,6 +31,7 @@ public OnGameModeInit()
     AddPlayerClass(NYX_DEFAULT_SKIN_MALE,NYX_SPAWN_X,NYX_SPAWN_Y,NYX_SPAWN_Z,0.0,0,0,0,0,0,0);
     AddPlayerClass(NYX_DEFAULT_SKIN_FEMALE,NYX_SPAWN_X,NYX_SPAWN_Y,NYX_SPAWN_Z,0.0,0,0,0,0,0,0);
     NYX_InitProperties();
+    NYX_AdvBusinessLoad();
     SetTimer("NYX_AutoSave",60000,true);
     Create3DTextLabel("{8B5CF6}NYX ROLEPLAY\n{FFFFFF}Prefeitura / Centro",COLOR_WHITE,NYX_SPAWN_X,NYX_SPAWN_Y,21.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}HOSPITAL CENTRAL NYX",COLOR_WHITE,1520.0,-1675.0,15.0,30.0,0,1);
@@ -38,20 +39,30 @@ public OnGameModeInit()
     Create3DTextLabel("{8B5CF6}CASSINO NYX",COLOR_WHITE,2200.0,-1670.0,16.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}SEX SHOP NYX",COLOR_WHITE,1350.0,-1740.0,15.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}IGREJA CENTRAL NYX",COLOR_WHITE,1420.0,-1710.0,15.0,30.0,0,1);
-    print("[NYX] Core RP online: contas persistentes, banco, empregos, orgs, casamento, propriedades e NCoins.");
+    print("[NYX] Core RP online: contas, banco, empregos, orgs, casamento, propriedades, NCoins e sistemas avancados.");
     return 1;
 }
 
 public NYX_AutoSave()
 {
     for(new i=0;i<MAX_PLAYERS;i++)
-        if(IsPlayerConnected(i) && NYX_Player[i][NYX_Logged]) NYX_SaveAccount(i);
+    {
+        if(IsPlayerConnected(i) && NYX_Player[i][NYX_Logged])
+        {
+            NYX_LegacyTick(i);
+            NYX_MedicalTick(i);
+            NYX_AdvPlayerTick(i);
+            NYX_SyncMoney(i);
+            NYX_SaveAccount(i);
+        }
+    }
+    NYX_AdvBusinessSave();
     return 1;
 }
 
 public OnPlayerConnect(playerid)
 {
-    NYX_ResetPlayer(playerid); NYX_ResetJob(playerid); NYX_ResetMarriage(playerid);
+    NYX_ResetPlayer(playerid); NYX_ResetJob(playerid); NYX_ResetMarriage(playerid); NYX_AdvInitPlayer(playerid);
     NYX_PendingMarriage[playerid]=INVALID_PLAYER_ID;
     NYX_ApplyGraphicsProfile(playerid);
     if(NYX_AccountExists(playerid))
@@ -64,6 +75,7 @@ public OnPlayerConnect(playerid)
 public OnPlayerDisconnect(playerid,reason)
 {
     if(NYX_Player[playerid][NYX_Logged]) NYX_SaveAccount(playerid);
+    if(NYX_AdvMedicalTimer[playerid]!=INVALID_TIMER) KillTimer(NYX_AdvMedicalTimer[playerid]);
     if(NYX_JobVehicleId[playerid]!=INVALID_VEHICLE_ID) DestroyVehicle(NYX_JobVehicleId[playerid]);
     NYX_ResetJob(playerid); NYX_ResetMarriage(playerid); return 1;
 }
@@ -80,7 +92,22 @@ public OnPlayerSpawn(playerid)
 {
     if(!NYX_Player[playerid][NYX_Logged]) return 1;
     NYX_ApplyGraphicsProfile(playerid);
-    NYX_SetupSpawn(playerid); return 1;
+    NYX_SetupSpawn(playerid);
+    if(NYX_AdvJailTime[playerid]>0) SetPlayerPos(playerid,NYX_ADV_JAIL_X,NYX_ADV_JAIL_Y,NYX_ADV_JAIL_Z);
+    return 1;
+}
+
+public OnPlayerDeath(playerid,killerid,reason)
+{
+    NYX_MedicalSetInjury(playerid);
+    NYX_AdvMedicalDeath(playerid);
+    return 1;
+}
+
+public OnPlayerTakeDamage(playerid,issuerid,Float:amount,weaponid,bodypart)
+{
+    NYX_MedicalSetInjury(playerid);
+    return 1;
 }
 
 public OnPlayerEnterCheckpoint(playerid)
@@ -132,7 +159,7 @@ public OnDialogResponse(playerid,dialogid,response,listitem,inputtext[])
         {
             if(!response||!NYX_IsValidOrg(listitem)) return 1;
             new info[320];
-            format(info,sizeof info,"Organizacao: %s\nStatus: %s\nCargos: 1-%d\n\nA mesma organizacao atua em todo o mapa.\nLideranca, recrutamento e promocoes ficam vinculados ao personagem.",NYX_OrgName[listitem],NYX_OrgActive[listitem]?"ATIVA":"OFFLINE",NYX_MAX_RANKS);
+            format(info,sizeof info,"Organizacao: %s\nStatus: %s\nCargos: 1-%d\n\nUse /orgconvidar, /orgcargo e /orgexpulsar para gerenciar membros.",NYX_OrgName[listitem],NYX_OrgActive[listitem]?"ATIVA":"OFFLINE",NYX_MAX_RANKS);
             return ShowPlayerDialog(playerid,D_HELP,DIALOG_STYLE_MSGBOX,"NYX | ORGANIZACAO",info,"OK","");
         }
         case D_JOBS:
@@ -203,6 +230,7 @@ public OnPlayerCommandText(playerid,cmdtext[])
 {
     if(!NYX_Player[playerid][NYX_Logged]) return 1;
     if(NYX_HandleCompletionCommand(playerid,cmdtext)) return 1;
+    if(NYX_AdvCommands(playerid,cmdtext)) return 1;
     if(!strcmp(cmdtext,"/orgs",true))
     {
         new list[2048],line[96];list[0]=EOS;
@@ -263,6 +291,6 @@ public OnPlayerCommandText(playerid,cmdtext[])
     if(!strcmp(cmdtext,"/divorcio",true)){if(!NYX_Divorce(playerid))return SendClientMessage(playerid,COLOR_WARNING,"Voce nao esta casado.");return SendClientMessage(playerid,COLOR_SUCCESS,"Divorcio realizado.");}
     if(!strcmp(cmdtext,"/loja",true))return ShowPlayerDialog(playerid,D_STORE,DIALOG_STYLE_MSGBOX,"NYX | NCOINS","Moeda premium NYX.\nSkins premium podem usar NCoins.\nCompras reais devem ser processadas pelo backend oficial.","OK","");
     if(!strcmp(cmdtext,"/gps",true)){SetPlayerCheckpoint(playerid,NYX_SPAWN_X,NYX_SPAWN_Y,NYX_SPAWN_Z,4.0);return SendClientMessage(playerid,COLOR_SUCCESS,"GPS marcado: Centro / Prefeitura NYX.");}
-    if(!strcmp(cmdtext,"/ajuda",true))return ShowPlayerDialog(playerid,D_HELP,DIALOG_STYLE_MSGBOX,"NYX | AJUDA","/necessidades /comer /beber /passaporte /negocios\n/garagem /guardarveiculo ID /assaltar\n/pesca /pescar /pararpesca /sistemas /diferenciais\n/banco /depositar /sacar /conta /salvar\n/empregos /trabalhar /concluir\n/orgs /status /skin\n/lanchonetes /imoveis /leilao /familias\n/ncoins /loja\n/casar ID /aceitarcasamento /divorcio\n/mundo /gps","FECHAR","");
+    if(!strcmp(cmdtext,"/ajuda",true))return ShowPlayerDialog(playerid,D_HELP,DIALOG_STYLE_MSGBOX,"NYX | AJUDA","/necessidades /comer /beber /passaporte /negocios\n/garagem /guardarveiculo ID /assaltar\n/pesca /pescar /pararpesca /sistemas /diferenciais\n/banco /depositar /sacar /conta /salvar\n/empregos /trabalhar /concluir\n/orgs /orglista /orgconvidar ID /orgaceitar /orgcargo ID CARGO\n/negocios /comprarnegocio ID /depositonegocio ID VALOR\n/chamarsamu /samuatender ID /motor /pena\n/ncoins /loja /statuscompleto /rpajuda\n/casar ID /aceitarcasamento /divorcio\n/mundo /gps","FECHAR","");
     return 0;
 }
