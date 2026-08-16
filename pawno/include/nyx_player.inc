@@ -9,6 +9,7 @@
 
 #include <nyx_inventory>
 #include <nyx_vehicles>
+#include <nyx_police>
 
 enum E_NYX_PLAYER {
     NYX_Logged,
@@ -52,6 +53,7 @@ stock NYX_ResetPlayer(playerid)
     NYX_InventoryReset(playerid);
     NYX_LegacyInitPlayer(playerid);
     NYX_VehicleReset(playerid);
+    NYX_PoliceReset(playerid);
     return 1;
 }
 
