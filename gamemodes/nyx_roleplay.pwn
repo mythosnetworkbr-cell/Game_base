@@ -1,6 +1,7 @@
 #include <a_samp>
 #include <nyx_config>
 #include <nyx_player>
+#include <nyx_medical>
 #include <nyx_orgs>
 #include <nyx_jobs>
 #include <nyx_marriage>
