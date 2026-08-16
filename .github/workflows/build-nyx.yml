@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - nyx-build-test
+      - nyx-fix-runtime20
   workflow_dispatch:
 
 jobs:
@@ -41,7 +42,7 @@ jobs:
             -w /workspace \
             michaelace/pawncc:3.10.11-linux \
             pawncc -i"/samp-stdlib" -i"/workspace/pawno/include" -i"/workspace/gamemodes" -O2 -d3 -Z \
-            -o"/workspace/build/nyx_roleplay.amx" "/workspace/gamemodes/nyx_roleplay.pwn" 2>&1 | tee build/compile.log
+            -o"/workspace/build/nyx_roleplay.amx" "/workspace/gamemodes/nyx_roleplay_entry.pwn" 2>&1 | tee build/compile.log
           test -s build/nyx_roleplay.amx
 
       - name: Compile NYX Staff entrypoint
@@ -53,7 +54,7 @@ jobs:
             -w /workspace \
             michaelace/pawncc:3.10.11-linux \
             pawncc -i"/samp-stdlib" -i"/workspace/pawno/include" -i"/workspace/gamemodes" -O2 -d3 -Z \
-            -o"/workspace/build/nyx_roleplay_staff.amx" "/workspace/gamemodes/nyx_roleplay_staff.pwn" 2>&1 | tee -a build/compile.log
+            -o"/workspace/build/nyx_roleplay_staff.amx" "/workspace/gamemodes/nyx_roleplay_staff_entry.pwn" 2>&1 | tee -a build/compile.log
           test -s build/nyx_roleplay_staff.amx
 
       - name: Package test build
@@ -62,6 +63,8 @@ jobs:
           cp -r pawno/include build/nyx_test/
           cp gamemodes/nyx_roleplay.pwn build/nyx_test/
           cp gamemodes/nyx_roleplay_staff.pwn build/nyx_test/
+          cp gamemodes/nyx_roleplay_entry.pwn build/nyx_test/
+          cp gamemodes/nyx_roleplay_staff_entry.pwn build/nyx_test/
           cp build/nyx_roleplay.amx build/nyx_test/
           cp build/nyx_roleplay_staff.amx build/nyx_test/
           cp build/compile.log build/nyx_test/
