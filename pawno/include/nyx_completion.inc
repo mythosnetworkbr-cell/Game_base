@@ -5,6 +5,7 @@
 
 stock NYX_HandleCompletionCommand(playerid, cmdtext[])
 {
+    if(NYX_PoliceCommands(playerid,cmdtext)) return 1;
     if(!strcmp(cmdtext,"/necessidades",true)) return NYX_ShowNeeds(playerid);
     if(!strcmp(cmdtext,"/comer",true)) return NYX_Eat(playerid,25);
     if(!strcmp(cmdtext,"/beber",true)) return NYX_Drink(playerid,25);
