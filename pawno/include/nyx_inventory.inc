@@ -12,6 +12,7 @@ new const NYX_InvNames[][] = {
     "Vazio", "Agua", "Comida", "Kit medico", "Celular", "Documento",
     "Pescado", "Combustivel", "Mochila", "Ferramenta", "Colete", "Chave"
 };
+new const NYX_InvPrice[] = {0,25,40,120,300,50,60,150,500,180,800,75};
 
 stock NYX_InventoryReset(playerid)
 {
@@ -48,6 +49,21 @@ stock NYX_InventoryRemove(playerid,itemid,amount)
     return 1;
 }
 
+stock NYX_InventoryBuy(playerid,itemid,amount)
+{
+    if(itemid<=0 || itemid>=sizeof(NYX_InvNames) || amount<=0 || amount>20) return 0;
+    new total=NYX_InvPrice[itemid]*amount;
+    if(total<=0 || GetPlayerMoney(playerid)<total) return 0;
+    if(!NYX_InventoryAdd(playerid,itemid,amount)) return 0;
+    GivePlayerMoney(playerid,-total);
+    NYX_SyncMoney(playerid);
+    NYX_SaveAccount(playerid);
+    new msg[128];
+    format(msg,sizeof msg,"Compra concluida: %s x%d por $%d.",NYX_InvNames[itemid],amount,total);
+    SendClientMessage(playerid,COLOR_SUCCESS,msg);
+    return 1;
+}
+
 stock NYX_InventoryShow(playerid)
 {
     new list[2048],line[96];
@@ -60,7 +76,7 @@ stock NYX_InventoryShow(playerid)
             strcat(list,line,sizeof list);
         }
     }
-    if(!strlen(list)) format(list,sizeof list,"Inventario vazio.\n\nUse /compraritem para adquirir itens basicos.");
+    if(!strlen(list)) format(list,sizeof list,"Inventario vazio.\n\nUse /compraragua, /comprarcomida ou /comprarkit.");
     return ShowPlayerDialog(playerid,1010,DIALOG_STYLE_MSGBOX,"NYX | INVENTARIO",list,"FECHAR","");
 }
 
@@ -97,6 +113,12 @@ stock NYX_InventoryGiveStarter(playerid)
 stock NYX_InventoryCommands(playerid,cmdtext[])
 {
     if(!strcmp(cmdtext,"/inventario",true)) return NYX_InventoryShow(playerid);
+    if(!strcmp(cmdtext,"/compraragua",true)) return NYX_InventoryBuy(playerid,1,1);
+    if(!strcmp(cmdtext,"/comprarcomida",true)) return NYX_InventoryBuy(playerid,2,1);
+    if(!strcmp(cmdtext,"/comprarkit",true)) return NYX_InventoryBuy(playerid,3,1);
+    if(!strcmp(cmdtext,"/comprarcelular",true)) return NYX_InventoryBuy(playerid,4,1);
+    if(!strcmp(cmdtext,"/comprarmochila",true)) return NYX_InventoryBuy(playerid,8,1);
+    if(!strcmp(cmdtext,"/comprarcolete",true)) return NYX_InventoryBuy(playerid,10,1);
     if(!strcmp(cmdtext,"/usaritem 1",true)) return NYX_InventoryUse(playerid,1);
     if(!strcmp(cmdtext,"/usaritem 2",true)) return NYX_InventoryUse(playerid,2);
     if(!strcmp(cmdtext,"/usaritem 3",true)) return NYX_InventoryUse(playerid,3);
