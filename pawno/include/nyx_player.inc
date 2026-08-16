@@ -8,6 +8,7 @@
 #define NYX_BANK_START 10000
 
 #include <nyx_inventory>
+#include <nyx_vehicles>
 
 enum E_NYX_PLAYER {
     NYX_Logged,
@@ -54,6 +55,7 @@ stock NYX_ResetPlayer(playerid)
     NYX_AccountLoaded[playerid] = false;
     NYX_InventoryReset(playerid);
     NYX_LegacyInitPlayer(playerid);
+    NYX_VehicleReset(playerid);
     return 1;
 }
 
@@ -77,6 +79,14 @@ stock NYX_SaveAccount(playerid)
     {
         format(line,sizeof line,"%d",NYX_InvItem[playerid][i]); fwrite(file,line);
         format(line,sizeof line,"%d",NYX_InvAmount[playerid][i]); fwrite(file,line);
+    }
+    for(new slot=0;slot<NYX_VEHICLE_SLOTS;slot++)
+    {
+        format(line,sizeof line,"%d",NYX_VehicleOwnedModel[playerid][slot]); fwrite(file,line);
+        format(line,sizeof line,"%d",NYX_VehicleColor1[playerid][slot]); fwrite(file,line);
+        format(line,sizeof line,"%d",NYX_VehicleColor2[playerid][slot]); fwrite(file,line);
+        format(line,sizeof line,"%.2f",NYX_VehicleFuel[playerid][slot]); fwrite(file,line);
+        format(line,sizeof line,"%.2f",NYX_VehicleHealth[playerid][slot]); fwrite(file,line);
     }
     fclose(file);
     return 1;
@@ -106,6 +116,20 @@ stock NYX_LoadAccount(playerid,password[])
         if(!fread(file,line,sizeof line)) break;
         NYX_InvAmount[playerid][i]=strval(line);
     }
+    NYX_VehicleReset(playerid);
+    for(new slot=0;slot<NYX_VEHICLE_SLOTS;slot++)
+    {
+        if(!fread(file,line,sizeof line)) break;
+        NYX_VehicleOwnedModel[playerid][slot]=strval(line);
+        if(!fread(file,line,sizeof line)) break;
+        NYX_VehicleColor1[playerid][slot]=strval(line);
+        if(!fread(file,line,sizeof line)) break;
+        NYX_VehicleColor2[playerid][slot]=strval(line);
+        if(!fread(file,line,sizeof line)) break;
+        NYX_VehicleFuel[playerid][slot]=floatstr(line);
+        if(!fread(file,line,sizeof line)) break;
+        NYX_VehicleHealth[playerid][slot]=floatstr(line);
+    }
     fclose(file);
     NYX_AccountLoaded[playerid]=true;
     return 1;
@@ -134,7 +158,7 @@ stock NYX_IsValidSkin(skinid)
 
 stock NYX_SetupSpawn(playerid)
 {
-    SetPlayerPos(playerid,1481.0,-1771.0,18.8);
+    SetPlayerPos(playerid,NYX_SPAWN_X,NYX_SPAWN_Y,NYX_SPAWN_Z);
     SetPlayerFacingAngle(playerid,0.0);
     SetPlayerSkin(playerid,NYX_Player[playerid][NYX_Skin]);
     ResetPlayerMoney(playerid);
