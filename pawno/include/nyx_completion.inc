@@ -3,9 +3,6 @@
 #endif
 #define _NYX_COMPLETION_INCLUDED
 
-// Consolidated gameplay bridge. Features only count when they execute through
-// the NYX command path and survive the Pawn build.
-
 stock NYX_HandleCompletionCommand(playerid, cmdtext[])
 {
     if(!strcmp(cmdtext,"/necessidades",true)) return NYX_ShowNeeds(playerid);
@@ -18,7 +15,8 @@ stock NYX_HandleCompletionCommand(playerid, cmdtext[])
     if(!strcmp(cmdtext,"/negocios",true)) return NYX_ShowBusinesses(playerid);
     if(!strcmp(cmdtext,"/assaltar",true)) return NYX_TryRobbery(playerid);
     if(!strcmp(cmdtext,"/sistemas",true)) return NYX_ShowLegacySystems(playerid);
-    if(!strcmp(cmdtext,"/garagem",true)) return NYX_OpenGarage(playerid);
+    if(!strcmp(cmdtext,"/garagem",true)) return NYX_ShowGarage(playerid);
+    if(!strcmp(cmdtext,"/veiculos",true)) return NYX_VehicleList(playerid);
     if(!strcmp(cmdtext,"/pesca",true)) return NYX_StartFishing(playerid);
     if(!strcmp(cmdtext,"/pescar",true)) return NYX_CatchFish(playerid);
     if(!strcmp(cmdtext,"/pararpesca",true)) return NYX_StopFishing(playerid);
@@ -29,6 +27,30 @@ stock NYX_HandleCompletionCommand(playerid, cmdtext[])
     {
         new model=strval(cmdtext[16]);
         return NYX_StoreGarageVehicle(playerid,model);
+    }
+    if(strfind(cmdtext,"/comprarcarro ",true)==0)
+    {
+        new slot=strval(cmdtext[14])-1;
+        new model=0;
+        new space[8];
+        format(space,sizeof space,"%s",cmdtext[14]);
+        new p=strfind(cmdtext," ",true,14);
+        if(p!=-1) { slot=strval(cmdtext[14])-1; model=strval(cmdtext[p+1]); }
+        if(model<=0) return SendClientMessage(playerid,COLOR_WARNING,"Use /comprarcarro VAGA MODELO. Ex.: /comprarcarro 1 411");
+        if(!NYX_VehicleBuyOwned(playerid,slot,model)) return SendClientMessage(playerid,COLOR_ERROR,"Nao foi possivel comprar: vaga ocupada, modelo invalido ou dinheiro insuficiente.");
+        return SendClientMessage(playerid,COLOR_SUCCESS,"Veiculo comprado e salvo na garagem.");
+    }
+    if(strfind(cmdtext,"/retirarcarro ",true)==0)
+    {
+        new slot=strval(cmdtext[14])-1;
+        if(!NYX_VehicleSpawnOwned(playerid,slot)) return SendClientMessage(playerid,COLOR_ERROR,"Vaga invalida ou sem veiculo.");
+        return SendClientMessage(playerid,COLOR_SUCCESS,"Veiculo retirado da garagem.");
+    }
+    if(strfind(cmdtext,"/guardarcarro ",true)==0)
+    {
+        new slot=strval(cmdtext[14])-1;
+        if(!NYX_VehicleStoreOwned(playerid,slot)) return SendClientMessage(playerid,COLOR_WARNING,"Nao ha veiculo dessa vaga ativo para guardar.");
+        return SendClientMessage(playerid,COLOR_SUCCESS,"Veiculo guardado e estado salvo.");
     }
     if(strfind(cmdtext,"/statuscompleto",true)==0)
     {
