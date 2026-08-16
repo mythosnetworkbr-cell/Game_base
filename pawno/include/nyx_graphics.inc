@@ -15,8 +15,8 @@
 // O pacote mobile/launcher deve fornecer os assets de alta qualidade.
 stock NYX_ApplyGraphicsProfile(playerid)
 {
-    // Mantem o personagem com o modelo nativo escolhido pela GameMode.
-    // Configuracoes especificas do cliente ficam no launcher/mobile.
     SetPlayerSkillLevel(playerid,WEAPONSKILL_PISTOL,100);
     return 1;
 }
+
+#include <nyx_police>
