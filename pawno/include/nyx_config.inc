@@ -4,7 +4,7 @@
 #define _NYX_CONFIG_INCLUDED
 
 #define NYX_SERVER_NAME "NYX ROLEPLAY"
-#define NYX_VERSION "1.3.0"
+#define NYX_VERSION "1.4.0"
 #define NYX_SPAWN_X 1481.0
 #define NYX_SPAWN_Y -1771.0
 #define NYX_SPAWN_Z 18.8
@@ -45,6 +45,5 @@ new const NYX_SKIN_CATALOG[] = {
     308,309,310,311
 };
 
-// Compatibility layer built from the supplied RP bases. The guard in the
-// included module keeps it safe when other NYX includes are compiled too.
 #include <nyx_legacy>
+#include <nyx_completion>
