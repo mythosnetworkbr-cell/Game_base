@@ -9,7 +9,6 @@
 
 #include <nyx_inventory>
 #include <nyx_vehicles>
-#include <nyx_police>
 
 enum E_NYX_PLAYER {
     NYX_Logged,
