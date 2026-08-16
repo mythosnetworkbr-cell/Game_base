@@ -3,9 +3,6 @@
 #endif
 #define _NYX_LEGACY_INCLUDED
 
-// NYX legacy integration layer.
-// Reimplements compatible systems observed across the supplied RP bases.
-
 #define NYX_NEED_MAX 100
 #define NYX_LEGACY_BUSINESS_COUNT 8
 
@@ -140,13 +137,11 @@ stock NYX_ShowLegacySystems(playerid)
     return 1;
 }
 
-// Fishing system consolidated from the supplied RP bases.
 stock NYX_StartFishing(playerid)
 {
     if(NYX_Fishing[playerid]) return SendClientMessage(playerid,0xFFFF66FF,"[NYX] Voce ja esta pescando.");
     if(NYX_FishCooldown[playerid]>0) return SendClientMessage(playerid,0xFFFF66FF,"[NYX] Aguarde antes de pescar novamente.");
     NYX_Fishing[playerid]=true;
-    NYX_FishCooldown[playerid]=15;
     SendClientMessage(playerid,0x66CCFFFF,"[NYX] Pescaria iniciada. Use /pescar para tentar fisgar um peixe.");
     return 1;
 }
@@ -158,7 +153,6 @@ stock NYX_CatchFish(playerid)
     new reward=150+random(351);
     GivePlayerMoney(playerid,reward);
     NYX_Fishing[playerid]=false;
-    NYX_SyncMoney(playerid);
     new msg[96]; format(msg,sizeof msg,"[NYX] Peixe capturado! Venda do peixe: +$%d",reward);
     return SendClientMessage(playerid,0x66CCFFFF,msg);
 }
@@ -172,7 +166,5 @@ stock NYX_StopFishing(playerid)
 
 stock NYX_ShowPremiumFeatures(playerid)
 {
-    new msg[192];
-    format(msg,sizeof msg,"NYX PREMIUM | NCoins: %d | Loja: /loja | Recursos premium sao controlados pelo saldo da conta.",NYX_Player[playerid][NYX_NCoins]);
-    return SendClientMessage(playerid,0x8B5CF6FF,msg);
+    return SendClientMessage(playerid,0x8B5CF6FF,"[NYX PREMIUM] Loja: /loja | Skins e recursos premium sao controlados pelo saldo da conta.");
 }
