@@ -212,13 +212,13 @@ public OnPlayerCommandText(playerid,cmdtext[])
     if(!strcmp(cmdtext,"/trabalhar",true)) return NYX_StartJob(playerid);
     if(!strcmp(cmdtext,"/concluir",true)) return NYX_ConcludeJob(playerid);
     if(!strcmp(cmdtext,"/banco",true)) return NYX_ShowBank(playerid);
-    if(!strncmp(cmdtext,"/depositar ",11,true))
+    if(strfind(cmdtext,"/depositar ",true)==0)
     {
         new amount=strval(cmdtext[11]);
         if(!NYX_Deposit(playerid,amount)) return SendClientMessage(playerid,COLOR_ERROR,"Deposito invalido ou saldo em especie insuficiente.");
         new msg[96];format(msg,sizeof msg,"Deposito realizado: $%d | Banco: $%d",amount,NYX_Bank[playerid]);return SendClientMessage(playerid,COLOR_SUCCESS,msg);
     }
-    if(!strncmp(cmdtext,"/sacar ",7,true))
+    if(strfind(cmdtext,"/sacar ",true)==0)
     {
         new amount=strval(cmdtext[7]);
         if(!NYX_Withdraw(playerid,amount)) return SendClientMessage(playerid,COLOR_ERROR,"Saque invalido ou saldo bancario insuficiente.");
@@ -246,7 +246,7 @@ public OnPlayerCommandText(playerid,cmdtext[])
     if(!strcmp(cmdtext,"/ncoins",true)){new msg[96];format(msg,sizeof msg,"Seu saldo: %d NCoins.",NYX_Player[playerid][NYX_NCoins]);return SendClientMessage(playerid,COLOR_NYX,msg);}
     if(!strcmp(cmdtext,"/mundo",true)) return NYX_ShowWorldInfo(playerid);
     if(!strcmp(cmdtext,"/casamento",true)) return NYX_MarriageExplain(playerid);
-    if(!strncmp(cmdtext,"/casar ",7,true))
+    if(strfind(cmdtext,"/casar ",true)==0)
     {
         new target=strval(cmdtext[7]);
         if(!NYX_MarriageCanPropose(playerid,target))return SendClientMessage(playerid,COLOR_ERROR,"Nao e possivel casar com este jogador.");
