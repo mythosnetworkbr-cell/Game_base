@@ -1,11 +1,11 @@
-// The source GameMode historically contained account persistence keyed by the
-// SA-MP nickname. Keep those routines available under legacy names while the
-// entrypoint uses the NYX account identity system (name + password + IP + ID).
+// NYX account entrypoint: custom account name/password/IP/ID persistence.
+// Legacy routines remain available so existing RP modules keep their behavior.
 #define NYX_AccountFile NYX_Legacy_AccountFile
 #define NYX_AccountExists NYX_Legacy_AccountExists
 #define NYX_SaveAccount NYX_Legacy_SaveAccount
 #define NYX_LoadAccount NYX_Legacy_LoadAccount
 #define NYX_CreateAccount NYX_Legacy_CreateAccount
+#define NYX_AutoSave NYX_Legacy_AutoSave
 #define OnPlayerConnect NYX_Legacy_OnPlayerConnect
 #define OnPlayerDisconnect NYX_Legacy_OnPlayerDisconnect
 #define OnDialogResponse NYX_Legacy_OnDialogResponse
@@ -17,11 +17,29 @@
 #undef NYX_SaveAccount
 #undef NYX_LoadAccount
 #undef NYX_CreateAccount
+#undef NYX_AutoSave
 #undef OnPlayerConnect
 #undef OnPlayerDisconnect
 #undef OnDialogResponse
 
-#include <nyx_identity>
+#include <nyx_identity_v3>
+
+public NYX_AutoSave()
+{
+    for(new i=0;i<MAX_PLAYERS;i++)
+    {
+        if(IsPlayerConnected(i) && NYX_Player[i][NYX_Logged])
+        {
+            NYX_LegacyTick(i);
+            NYX_MedicalTick(i);
+            NYX2_Tick(i);
+            NYX_SyncMoney(i);
+            NYX_SaveAccount(i);
+        }
+    }
+    NYX2_SaveBusinesses();
+    return 1;
+}
 
 public OnPlayerConnect(playerid)
 {
@@ -93,7 +111,7 @@ public OnDialogResponse(playerid,dialogid,response,listitem,inputtext[])
                 NYX_Player[playerid][NYX_Logged]=1;
                 ResetPlayerMoney(playerid);
                 GivePlayerMoney(playerid,NYX_Player[playerid][NYX_Money]);
-                NYX_IdentitySave(playerid);
+                NYX_SaveAccount(playerid);
                 SendClientMessage(playerid,COLOR_SUCCESS,"Conta criada e salva com sucesso!");
                 SendClientMessage(playerid,COLOR_WHITE,"Seu ID NYX comeca em 1 e fica vinculado ao seu nome, senha e IP.");
                 SpawnPlayer(playerid);
@@ -105,7 +123,7 @@ public OnDialogResponse(playerid,dialogid,response,listitem,inputtext[])
                 NYX_Player[playerid][NYX_Logged]=1;
                 ResetPlayerMoney(playerid);
                 GivePlayerMoney(playerid,NYX_Player[playerid][NYX_Money]);
-                NYX_IdentitySave(playerid);
+                NYX_SaveAccount(playerid);
                 SendClientMessage(playerid,COLOR_SUCCESS,"Login realizado. Seus dados foram carregados.");
                 SpawnPlayer(playerid);
                 return 1;
