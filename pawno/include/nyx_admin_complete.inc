@@ -1,0 +1,326 @@
+#if defined _NYX_ADMIN_COMPLETE_INCLUDED
+    #endinput
+#endif
+#define _NYX_ADMIN_COMPLETE_INCLUDED
+
+#include <sscanf2>
+
+#define NYX_ADMIN_SUPPORT 1
+#define NYX_ADMIN_ASSIST 2
+#define NYX_ADMIN_2 3
+#define NYX_ADMIN_LEADER 4
+#define NYX_ADMIN_MANAGER 5
+#define NYX_ADMIN_ALL 6
+#define NYX_ADMIN_STAFF 7
+#define NYX_ADMIN_DEV 80
+#define NYX_ADMIN_OWNER 100
+
+#define NYX_AUTO_JAIL_SECONDS 1800
+#define NYX_PAYDAY_SECONDS 3600
+#define NYX_PAYDAY_BASE 2500
+#define NYX_ADMIN_PAYDAY_BONUS 500
+
+#define NYX_JAIL_X 264.6288
+#define NYX_JAIL_Y 77.5742
+#define NYX_JAIL_Z 1001.0391
+#define NYX_JAIL_A 270.0
+#define NYX_JAIL_INTERIOR 6
+#define NYX_JAIL_WORLD 1
+
+new bool:NYX_AdminGod[MAX_PLAYERS];
+new bool:NYX_AdminInvisible[MAX_PLAYERS];
+new bool:NYX_AdminFrozen[MAX_PLAYERS];
+new NYX_AdminJail[MAX_PLAYERS];
+new NYX_AdminWarnings[MAX_PLAYERS];
+new NYX_AdminJailReason[MAX_PLAYERS][64];
+new NYX_PaydayTime[MAX_PLAYERS];
+new Float:NYX_SpecPos[MAX_PLAYERS][3];
+new NYX_SpecInterior[MAX_PLAYERS];
+new NYX_SpecVW[MAX_PLAYERS];
+new NYX_AdminTimer;
+
+stock bool:NYX_AdminHas(playerid, level)
+{
+    return NYX_Player[playerid][NYX_Admin] >= level;
+}
+
+stock NYX_AdminDeny(playerid)
+{
+    return SendClientMessage(playerid, COLOR_ERROR, "NYX: voce nao possui permissao para este comando.");
+}
+
+stock NYX_AdminTarget(params[], &targetid)
+{
+    return sscanf(params, "u", targetid) == 0;
+}
+
+stock NYX_AdminTargetReason(params[], &targetid, reason[], reason_size)
+{
+    return sscanf(params, "us[64]", targetid, reason) == 0;
+}
+
+stock NYX_AdminSave(playerid)
+{
+    NYX_SaveAccount(playerid);
+    return 1;
+}
+
+stock NYX_AdminLog(playerid, targetid, const command[], const details[])
+{
+    new path[96], line[256], adminName[MAX_PLAYER_NAME], targetName[MAX_PLAYER_NAME], File:file;
+    GetPlayerName(playerid, adminName, sizeof adminName);
+    if(targetid != INVALID_PLAYER_ID && IsPlayerConnected(targetid)) GetPlayerName(targetid, targetName, sizeof targetName);
+    else format(targetName, sizeof targetName, "SERVER");
+    format(path, sizeof path, "scriptfiles/nyx_admin_logs.dat");
+    file = fopen(path, io_append);
+    if(!file) return 0;
+    format(line, sizeof line, "%d | %s | %s | %s | %s", gettime(), adminName, targetName, command, details);
+    fwrite(file, line); fclose(file); return 1;
+}
+
+stock NYX_AdminMoveTo(playerid, targetid)
+{
+    new Float:x, Float:y, Float:z;
+    GetPlayerPos(targetid, x, y, z);
+    SetPlayerPos(playerid, x + 1.5, y + 1.5, z);
+    SetPlayerInterior(playerid, GetPlayerInterior(targetid));
+    SetPlayerVirtualWorld(playerid, GetPlayerVirtualWorld(targetid));
+    return 1;
+}
+
+stock NYX_AdminBring(playerid, targetid)
+{
+    new Float:x, Float:y, Float:z;
+    GetPlayerPos(playerid, x, y, z);
+    SetPlayerPos(targetid, x + 1.0, y + 1.0, z);
+    SetPlayerInterior(targetid, GetPlayerInterior(playerid));
+    SetPlayerVirtualWorld(targetid, GetPlayerVirtualWorld(playerid));
+    return 1;
+}
+
+stock NYX_AdminJailPlayer(targetid, seconds, const reason[])
+{
+    NYX_AdminJail[targetid] = seconds;
+    format(NYX_AdminJailReason[targetid], 64, "%s", reason);
+    SetPlayerPos(targetid, NYX_JAIL_X, NYX_JAIL_Y, NYX_JAIL_Z);
+    SetPlayerFacingAngle(targetid, NYX_JAIL_A);
+    SetPlayerInterior(targetid, NYX_JAIL_INTERIOR);
+    SetPlayerVirtualWorld(targetid, NYX_JAIL_WORLD);
+    ResetPlayerWeapons(targetid);
+    TogglePlayerControllable(targetid, 1);
+    return 1;
+}
+
+stock NYX_AdminReleaseJail(targetid)
+{
+    NYX_AdminJail[targetid] = 0;
+    NYX_AdminJailReason[targetid][0] = EOS;
+    SetPlayerInterior(targetid, 0);
+    SetPlayerVirtualWorld(targetid, 0);
+    SetPlayerPos(targetid, NYX_SPAWN_X, NYX_SPAWN_Y, NYX_SPAWN_Z);
+    TogglePlayerControllable(targetid, 1);
+    return 1;
+}
+
+stock NYX_AdminPayday(playerid)
+{
+    new salary = NYX_PAYDAY_BASE;
+    if(NYX_Player[playerid][NYX_Admin] > 0) salary += NYX_ADMIN_PAYDAY_BONUS;
+    NYX_Bank[playerid] += salary;
+    NYX_PaydayTime[playerid] = 0;
+    PlayerPlaySound(playerid, 1058, 0.0, 0.0, 0.0);
+    new msg[144];
+    SendClientMessage(playerid, COLOR_SUCCESS, "========== [ EXTRATO BANCARIO - PAYDAY ] ==========");
+    format(msg, sizeof msg, "Salario recebido: $%d (depositado no banco).", salary); SendClientMessage(playerid, COLOR_WHITE, msg);
+    format(msg, sizeof msg, "Saldo total no banco: $%d", NYX_Bank[playerid]); SendClientMessage(playerid, COLOR_WHITE, msg);
+    SendClientMessage(playerid, COLOR_SUCCESS, "====================================================");
+    NYX_SaveAccount(playerid);
+    return 1;
+}
+
+forward NYX_AdminSecondTick();
+public NYX_AdminSecondTick()
+{
+    for(new i=0; i<MAX_PLAYERS; i++)
+    {
+        if(!IsPlayerConnected(i) || !NYX_Player[i][NYX_Logged]) continue;
+        if(NYX_AdminJail[i] > 0)
+        {
+            NYX_AdminJail[i]--;
+            if(GetPlayerWeapon(i) > 0) ResetPlayerWeapons(i);
+            if(NYX_AdminJail[i] <= 0)
+            {
+                NYX_AdminReleaseJail(i);
+                SendClientMessage(i, COLOR_SUCCESS, "[PRISAO]: Sua pena terminou. Voce foi liberado.");
+                NYX_AdminSave(i);
+            }
+        }
+        NYX_PaydayTime[i]++;
+        if(NYX_PaydayTime[i] >= NYX_PAYDAY_SECONDS) NYX_AdminPayday(i);
+    }
+    return 1;
+}
+
+stock NYX_AdminInit()
+{
+    NYX_AdminTimer = SetTimer("NYX_AdminSecondTick", 1000, true);
+    for(new i=0; i<MAX_PLAYERS; i++)
+    {
+        NYX_AdminGod[i] = false; NYX_AdminInvisible[i] = false; NYX_AdminFrozen[i] = false;
+        NYX_AdminJail[i] = 0; NYX_AdminWarnings[i] = 0; NYX_PaydayTime[i] = 0; NYX_AdminJailReason[i][0] = EOS;
+    }
+    return 1;
+}
+
+stock NYX_AdminShutdown()
+{
+    if(NYX_AdminTimer) KillTimer(NYX_AdminTimer);
+    NYX_AdminTimer = 0;
+    return 1;
+}
+
+stock NYX_AdminConnect(playerid)
+{
+    NYX_AdminGod[playerid] = false; NYX_AdminInvisible[playerid] = false; NYX_AdminFrozen[playerid] = false;
+    NYX_AdminJail[playerid] = 0; NYX_AdminWarnings[playerid] = 0; NYX_PaydayTime[playerid] = 0; NYX_AdminJailReason[playerid][0] = EOS;
+    return 1;
+}
+
+stock NYX_AdminDisconnect(playerid)
+{
+    NYX_AdminGod[playerid] = false; NYX_AdminInvisible[playerid] = false; NYX_AdminFrozen[playerid] = false;
+    NYX_AdminJail[playerid] = 0; NYX_AdminWarnings[playerid] = 0; NYX_PaydayTime[playerid] = 0; NYX_AdminJailReason[playerid][0] = EOS;
+    return 1;
+}
+
+stock NYX_AdminCommand(playerid, cmdtext[])
+{
+    if(!NYX_Player[playerid][NYX_Logged]) return 0;
+
+    if(!strcmp(cmdtext, "/a", true, 2) || !strcmp(cmdtext, "/a ", true, 3))
+    {
+        if(!NYX_AdminHas(playerid,1)) return NYX_AdminDeny(playerid);
+        new msg[144], name[MAX_PLAYER_NAME]; GetPlayerName(playerid,name,sizeof name);
+        if(strlen(cmdtext)<=3) return SendClientMessage(playerid,COLOR_WARNING,"Uso: /a [mensagem]");
+        format(msg,sizeof msg,"[CHAT STAFF] %s %s: %s",NYX_Player[playerid][NYX_Admin]>=80?"DEV":"STAFF",name,cmdtext[3]);
+        for(new i=0;i<MAX_PLAYERS;i++) if(IsPlayerConnected(i)&&NYX_Player[i][NYX_Logged]&&NYX_Player[i][NYX_Admin]>0) SendClientMessage(i,0xFFFF00FF,msg);
+        return 1;
+    }
+    if(!strcmp(cmdtext,"/ir",true,3))
+    {
+        if(!NYX_AdminHas(playerid,1)) return NYX_AdminDeny(playerid);
+        new id; if(!NYX_AdminTarget(cmdtext[4],id)||!IsPlayerConnected(id)) return SendClientMessage(playerid,COLOR_WARNING,"Uso: /ir [id]");
+        NYX_AdminMoveTo(playerid,id); NYX_AdminLog(playerid,id,"/ir","Teleportou-se ate o jogador"); return 1;
+    }
+    if(!strcmp(cmdtext,"/traz",true,5))
+    {
+        if(!NYX_AdminHas(playerid,1)) return NYX_AdminDeny(playerid);
+        new id; if(!NYX_AdminTarget(cmdtext[6],id)||!IsPlayerConnected(id)) return SendClientMessage(playerid,COLOR_WARNING,"Uso: /traz [id]");
+        NYX_AdminBring(playerid,id); NYX_AdminLog(playerid,id,"/traz","Trouxe o jogador"); return 1;
+    }
+    if(!strcmp(cmdtext,"/kick",true,5))
+    {
+        if(!NYX_AdminHas(playerid,1)) return NYX_AdminDeny(playerid);
+        new id,reason[64]; if(!NYX_AdminTargetReason(cmdtext[6],id,reason,sizeof reason)||!IsPlayerConnected(id)) return SendClientMessage(playerid,COLOR_WARNING,"Uso: /kick [id] [motivo]");
+        if(NYX_Player[id][NYX_Admin]>=NYX_Player[playerid][NYX_Admin]&&NYX_Player[playerid][NYX_Admin]<100)return SendClientMessage(playerid,COLOR_ERROR,"Voce nao pode punir um administrador igual ou superior.");
+        new msg[144],a[MAX_PLAYER_NAME],t[MAX_PLAYER_NAME];GetPlayerName(playerid,a,sizeof a);GetPlayerName(id,t,sizeof t);format(msg,sizeof msg,"[ADM-KICK] %s foi expulso por %s. Motivo: %s",t,a,reason);SendClientMessageToAll(0xFF0000FF,msg);NYX_AdminLog(playerid,id,"/kick",reason);SetTimerEx("NYX_AdminDelayedKick",100,false,"i",id);return 1;
+    }
+    if(!strcmp(cmdtext,"/ban",true,4))
+    {
+        if(!NYX_AdminHas(playerid,1)) return NYX_AdminDeny(playerid);
+        new id,reason[64]; if(!NYX_AdminTargetReason(cmdtext[5],id,reason,sizeof reason)||!IsPlayerConnected(id)) return SendClientMessage(playerid,COLOR_WARNING,"Uso: /ban [id] [motivo]");
+        if(NYX_Player[id][NYX_Admin]>=NYX_Player[playerid][NYX_Admin]&&NYX_Player[playerid][NYX_Admin]<100)return SendClientMessage(playerid,COLOR_ERROR,"Voce nao pode banir um administrador igual ou superior.");
+        new path[96],line[160],name[MAX_PLAYER_NAME],File:file;GetPlayerName(id,name,sizeof name);format(path,sizeof path,"scriptfiles/nyx_bans.dat");file=fopen(path,io_append);if(file){format(line,sizeof line,"%s|%d|%s",name,gettime(),reason);fwrite(file,line);fclose(file);}NYX_AdminLog(playerid,id,"/ban",reason);new msg[144],admin[MAX_PLAYER_NAME];GetPlayerName(playerid,admin,sizeof admin);format(msg,sizeof msg,"[ADM-BAN] %s foi banido por %s. Motivo: %s",name,admin,reason);SendClientMessageToAll(0xFF0000FF,msg);SetTimerEx("NYX_AdminDelayedKick",100,false,"i",id);return 1;
+    }
+    if(!strcmp(cmdtext,"/jail",true,5))
+    {
+        if(!NYX_AdminHas(playerid,2)) return NYX_AdminDeny(playerid);
+        new id,minutes,reason[64];if(sscanf(cmdtext[6],"uis[64]",id,minutes,reason))return SendClientMessage(playerid,COLOR_WARNING,"Uso: /jail [id] [minutos] [motivo]");if(!IsPlayerConnected(id)||minutes<1||minutes>300)return SendClientMessage(playerid,COLOR_ERROR,"Jogador ou tempo invalido.");if(NYX_Player[id][NYX_Admin]>=NYX_Player[playerid][NYX_Admin]&&NYX_Player[playerid][NYX_Admin]<100)return SendClientMessage(playerid,COLOR_ERROR,"Voce nao pode prender um administrador igual ou superior.");NYX_AdminJailPlayer(id,minutes*60,reason);NYX_AdminLog(playerid,id,"/jail",reason);NYX_AdminSave(id);return SendClientMessage(id,COLOR_ERROR,"Voce foi preso administrativamente.");
+    }
+    if(!strcmp(cmdtext,"/unjail",true,7))
+    {
+        if(!NYX_AdminHas(playerid,2)) return NYX_AdminDeny(playerid);new id;if(!NYX_AdminTarget(cmdtext[8],id)||!IsPlayerConnected(id))return SendClientMessage(playerid,COLOR_WARNING,"Uso: /unjail [id]");NYX_AdminReleaseJail(id);NYX_AdminLog(playerid,id,"/unjail","Liberou da prisao");NYX_AdminSave(id);return SendClientMessage(id,COLOR_SUCCESS,"Voce foi liberado pela administracao.");
+    }
+    if(!strcmp(cmdtext,"/adv",true,4))
+    {
+        if(!NYX_AdminHas(playerid,1))return NYX_AdminDeny(playerid);new id,reason[64];if(!NYX_AdminTargetReason(cmdtext[5],id,reason,sizeof reason)||!IsPlayerConnected(id))return SendClientMessage(playerid,COLOR_WARNING,"Uso: /adv [id] [motivo]");if(NYX_Player[id][NYX_Admin]>=NYX_Player[playerid][NYX_Admin]&&NYX_Player[playerid][NYX_Admin]<100)return SendClientMessage(playerid,COLOR_ERROR,"Voce nao pode advertir um administrador igual ou superior.");NYX_AdminWarnings[id]++;new msg[144];format(msg,sizeof msg,"[ADVERTENCIA] Voce recebeu um aviso [%d/3]. Motivo: %s",NYX_AdminWarnings[id],reason);SendClientMessage(id,COLOR_ERROR,msg);NYX_AdminLog(playerid,id,"/adv",reason);if(NYX_AdminWarnings[id]>=3){NYX_AdminWarnings[id]=0;NYX_AdminJailPlayer(id,NYX_AUTO_JAIL_SECONDS,"Acumulo de 3 advertencias administrativas");SendClientMessage(id,COLOR_ERROR,"[PRISAO] 3 advertencias acumuladas. Pena: 30 minutos.");NYX_AdminLog(playerid,id,"/auto-jail","3 advertencias acumuladas");}NYX_AdminSave(id);return 1;
+    }
+    if(!strcmp(cmdtext,"/unadv",true,6))
+    {
+        if(!NYX_AdminHas(playerid,2))return NYX_AdminDeny(playerid);new id;if(!NYX_AdminTarget(cmdtext[7],id)||!IsPlayerConnected(id))return SendClientMessage(playerid,COLOR_WARNING,"Uso: /unadv [id]");if(NYX_AdminWarnings[id]<=0)return SendClientMessage(playerid,COLOR_ERROR,"Jogador sem advertencias.");NYX_AdminWarnings[id]--;NYX_AdminLog(playerid,id,"/unadv","Removeu uma advertencia");NYX_AdminSave(id);return SendClientMessage(id,COLOR_SUCCESS,"Uma advertencia foi removida.");
+    }
+    if(!strcmp(cmdtext,"/desarmar",true,9))
+    {
+        if(!NYX_AdminHas(playerid,1))return NYX_AdminDeny(playerid);new id;if(!NYX_AdminTarget(cmdtext[10],id)||!IsPlayerConnected(id))return SendClientMessage(playerid,COLOR_WARNING,"Uso: /desarmar [id]");if(NYX_Player[id][NYX_Admin]>=NYX_Player[playerid][NYX_Admin]&&NYX_Player[playerid][NYX_Admin]<100)return SendClientMessage(playerid,COLOR_ERROR,"Operacao nao permitida.");ResetPlayerWeapons(id);NYX_AdminLog(playerid,id,"/desarmar","Removeu todas as armas");return SendClientMessage(id,COLOR_WARNING,"Suas armas foram removidas pela administracao.");
+    }
+    if(!strcmp(cmdtext,"/curar",true,5))
+    {
+        if(!NYX_AdminHas(playerid,2))return NYX_AdminDeny(playerid);new id;if(!NYX_AdminTarget(cmdtext[6],id)||!IsPlayerConnected(id))return SendClientMessage(playerid,COLOR_WARNING,"Uso: /curar [id]");SetPlayerHealth(id,100.0);SetPlayerArmour(id,100.0);NYX_AdminLog(playerid,id,"/curar","Vida e colete restaurados");return 1;
+    }
+    if(!strcmp(cmdtext,"/godmode",true,8)||!strcmp(cmdtext,"/god",true,4))
+    {
+        if(!NYX_AdminHas(playerid,1))return NYX_AdminDeny(playerid);NYX_AdminGod[playerid]=!NYX_AdminGod[playerid];SetPlayerHealth(playerid,100.0);SetPlayerArmour(playerid,100.0);NYX_AdminLog(playerid,INVALID_PLAYER_ID,"/godmode",NYX_AdminGod[playerid]?"Ativou":"Desativou");return SendClientMessage(playerid,NYX_AdminGod[playerid]?COLOR_SUCCESS:COLOR_WARNING,NYX_AdminGod[playerid]?"Modo Deus ativado.":"Modo Deus desativado.");
+    }
+    if(!strcmp(cmdtext,"/invisivel",true,10)||!strcmp(cmdtext,"/inv",true,4))
+    {
+        if(!NYX_AdminHas(playerid,1))return NYX_AdminDeny(playerid);NYX_AdminInvisible[playerid]=!NYX_AdminInvisible[playerid];SetPlayerAlpha(playerid,NYX_AdminInvisible[playerid]?0:255);SetPlayerColor(playerid,NYX_AdminInvisible[playerid]?0xFFFFFF00:0xFFFFFFFF);NYX_AdminLog(playerid,INVALID_PLAYER_ID,"/invisivel",NYX_AdminInvisible[playerid]?"Ativou":"Desativou");return 1;
+    }
+    if(!strcmp(cmdtext,"/visivel",true,8))
+    {
+        if(!NYX_AdminHas(playerid,1))return NYX_AdminDeny(playerid);NYX_AdminInvisible[playerid]=false;SetPlayerAlpha(playerid,255);SetPlayerColor(playerid,0xFFFFFFFF);return 1;
+    }
+    if(!strcmp(cmdtext,"/freeze",true,7)||!strcmp(cmdtext,"/unfreeze",true,9))
+    {
+        if(!NYX_AdminHas(playerid,1))return NYX_AdminDeny(playerid);new id;if(!NYX_AdminTarget(cmdtext[strfind(cmdtext," ",true)+1],id)||!IsPlayerConnected(id))return SendClientMessage(playerid,COLOR_WARNING,"Uso: /freeze [id]");new freeze=!strcmp(cmdtext,"/freeze",true);TogglePlayerControllable(id,freeze?0:1);NYX_AdminFrozen[id]=freeze;NYX_AdminLog(playerid,id,freeze?"/freeze":"/unfreeze",freeze?"Congelou":"Descongelou");return 1;
+    }
+    if(!strcmp(cmdtext,"/limparchat",true,11)||!strcmp(cmdtext,"/cc",true,3))
+    {
+        if(!NYX_AdminHas(playerid,1))return NYX_AdminDeny(playerid);for(new i=0;i<60;i++)SendClientMessageToAll(-1," ");NYX_AdminLog(playerid,INVALID_PLAYER_ID,"/limparchat","Limpou o chat global");return 1;
+    }
+    if(!strcmp(cmdtext,"/setadmin",true,9))
+    {
+        if(!NYX_AdminHas(playerid,100))return NYX_AdminDeny(playerid);new id,level;if(sscanf(cmdtext[10],"ui",id,level)||!IsPlayerConnected(id))return SendClientMessage(playerid,COLOR_WARNING,"Uso: /setadmin [id] [nivel]");if(id==playerid)return SendClientMessage(playerid,COLOR_ERROR,"Voce nao pode alterar seu proprio cargo.");if(level!=0&&level!=1&&level!=2&&level!=3&&level!=4&&level!=5&&level!=6&&level!=7&&level!=80&&level!=100)return SendClientMessage(playerid,COLOR_ERROR,"Nivel administrativo invalido.");if(level>=100&&NYX_Player[playerid][NYX_Admin]<100)return SendClientMessage(playerid,COLOR_ERROR,"Operacao nao permitida.");NYX_Player[id][NYX_Admin]=level;NYX_AdminLog(playerid,id,"/setadmin","Nivel administrativo alterado");NYX_AdminSave(id);new msg[144];format(msg,sizeof msg,"Seu cargo administrativo agora e nivel %d.",level);SendClientMessage(id,COLOR_SUCCESS,msg);return 1;
+    }
+    if(!strcmp(cmdtext,"/clima",true,6))
+    {
+        if(!NYX_AdminHas(playerid,2))return NYX_AdminDeny(playerid);new w;if(sscanf(cmdtext[7],"i",w)||w<0||w>45)return SendClientMessage(playerid,COLOR_WARNING,"Uso: /clima [0-45]");SetWeather(w);NYX_AdminLog(playerid,INVALID_PLAYER_ID,"/clima","Clima alterado");return 1;
+    }
+    if(!strcmp(cmdtext,"/hora",true,5))
+    {
+        if(!NYX_AdminHas(playerid,2))return NYX_AdminDeny(playerid);new h;if(sscanf(cmdtext[6],"i",h)||h<0||h>23)return SendClientMessage(playerid,COLOR_WARNING,"Uso: /hora [0-23]");SetWorldTime(h);NYX_AdminLog(playerid,INVALID_PLAYER_ID,"/hora","Hora alterada");return 1;
+    }
+    if(!strcmp(cmdtext,"/payday",true,7))
+    {
+        new left=NYX_PAYDAY_SECONDS-NYX_PaydayTime[playerid];if(left<0)left=0;new msg[128];format(msg,sizeof msg,"[PAYDAY] Faltam %d minuto(s) e %d segundo(s) para o proximo salario.",left/60,left%60);return SendClientMessage(playerid,COLOR_WARNING,msg);
+    }
+    if(!strcmp(cmdtext,"/status",true,7)&&NYX_AdminJail[playerid]>0)
+    {
+        new msg[144];format(msg,sizeof msg,"[PRISAO] Tempo restante: %d minuto(s) e %d segundo(s) | Motivo: %s",NYX_AdminJail[playerid]/60,NYX_AdminJail[playerid]%60,NYX_AdminJailReason[playerid]);return SendClientMessage(playerid,COLOR_WARNING,msg);
+    }
+    if(!strcmp(cmdtext,"/gmx",true,4))
+    {
+        if(!NYX_AdminHas(playerid,100))return NYX_AdminDeny(playerid);SendClientMessageToAll(0xFF0000FF,"[SERVIDOR] GameMode reiniciando. Contas serao salvas.");for(new i=0;i<MAX_PLAYERS;i++)if(IsPlayerConnected(i)&&NYX_Player[i][NYX_Logged])NYX_SaveAccount(i);NYX_AdminLog(playerid,INVALID_PLAYER_ID,"/gmx","Reiniciou a GameMode");return SendRconCommand("gmx");
+    }
+    return 0;
+}
+
+forward NYX_AdminDelayedKick(playerid);
+public NYX_AdminDelayedKick(playerid)
+{
+    if(IsPlayerConnected(playerid)) Kick(playerid);
+    return 1;
+}
+
+stock NYX_AdminTakeDamage(playerid)
+{
+    if(NYX_AdminGod[playerid]) { SetPlayerHealth(playerid,100.0); SetPlayerArmour(playerid,100.0); return 1; }
+    if(NYX_AdminJail[playerid]>0) { ResetPlayerWeapons(playerid); return 1; }
+    return 0;
+}
+
+stock NYX_AdminGiveDamage(playerid, damagedid)
+{
+    if(NYX_AdminJail[playerid]>0 || (damagedid!=INVALID_PLAYER_ID&&NYX_AdminJail[damagedid]>0)) return 1;
+    if(damagedid!=INVALID_PLAYER_ID&&NYX_AdminGod[damagedid]) return 1;
+    return 0;
+}
