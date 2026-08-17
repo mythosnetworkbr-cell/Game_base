@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "format": "nyx-gta-mobile-assets",
+  "required": {
+    "models": [".dff"],
+    "textures": [".txd"],
+    "collision": [".col"],
+    "world_definitions": [".ide", ".ipl", ".map"]
+  },
+  "roots": {
+    "models": "res://assets/gta/models",
+    "textures": "res://assets/gta/textures",
+    "collision": "res://assets/gta/collision",
+    "world": "res://assets/gta/world"
+  },
+  "policy": {
+    "server_authoritative": true,
+    "download_missing_assets": true,
+    "allow_custom_nyx_skins": true
+  }
+}
