@@ -1,0 +1,9 @@
+{
+  "delivery": {"name": "Entregador", "salary": 120},
+  "driver": {"name": "Motorista", "salary": 180},
+  "mechanic": {"name": "Mecânico", "salary": 220},
+  "journalist": {"name": "Jornalista", "salary": 250},
+  "doctor": {"name": "Médico", "salary": 450},
+  "police": {"name": "Policial", "salary": 400},
+  "military": {"name": "Exército", "salary": 380}
+}
