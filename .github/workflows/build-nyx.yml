@@ -24,20 +24,43 @@ jobs:
       - name: Verify Pawn compiler container
         run: docker run --rm michaelace/pawncc:3.10.11-linux pawncc 2>&1 | head -n 2 || true
 
-      - name: Inject NYX staff layer
+      - name: Integrate NYX staff dispatcher
         run: |
           set -e
-          sed -i '/#include <nyx_graphics>/a #include <nyx_admin_text>' gamemodes/nyx_roleplay.pwn
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('gamemodes/nyx_roleplay.pwn')
-          s=p.read_text()
-          marker='public OnPlayerCommandText(playerid,cmdtext[])\n{\n'
-          if marker not in s:
-              raise SystemExit('OnPlayerCommandText marker not found')
-          s=s.replace(marker, marker+'    if(NYX_AdminCommandText(playerid, cmdtext)) return 1;\n', 1)
-          p.write_text(s)
+          import re
+
+          p = Path('gamemodes/nyx_roleplay.pwn')
+          s = p.read_text(encoding='utf-8')
+
+          include = '#include <nyx_admin_text>'
+          if include not in s:
+              anchor = re.compile(r'(#include\s+<nyx_player>\s*\r?\n)')
+              match = anchor.search(s)
+              if not match:
+                  raise SystemExit('ERRO: include <nyx_player> nao encontrado; integracao abortada.')
+              s = s[:match.end()] + include + '\n' + s[match.end():]
+
+          callback = re.compile(r'public\s+OnPlayerCommandText\s*\(\s*playerid\s*,\s*cmdtext\s*\[\s*\]\s*\)\s*\{')
+          match = callback.search(s)
+          if not match:
+              raise SystemExit('ERRO: callback OnPlayerCommandText nao encontrada; nenhum arquivo foi compilado.')
+
+          dispatch = '    if(NYX_AdminCommandText(playerid, cmdtext)) return 1;\n'
+          body_start = match.end()
+          body_end = s.find('\n}', body_start)
+          if body_end < 0:
+              body_end = min(len(s), body_start + 4096)
+          if 'NYX_AdminCommandText(playerid' not in s[body_start:body_end]:
+              s = s[:body_start] + '\n' + dispatch + s[body_start:]
+
+          p.write_text(s, encoding='utf-8')
+          print('NYX Admin Text integrado com sucesso.')
           PY
+
+          grep -n "#include <nyx_admin_text>" gamemodes/nyx_roleplay.pwn
+          grep -n "NYX_AdminCommandText(playerid" gamemodes/nyx_roleplay.pwn
 
       - name: Compile NYX GameMode
         run: |
