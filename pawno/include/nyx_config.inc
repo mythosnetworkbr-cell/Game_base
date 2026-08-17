@@ -52,3 +52,4 @@ new const NYX_SKIN_CATALOG[] = {
 #include <nyx_legacy>
 #include <nyx_completion>
 #include <nyx_inventory>
+#include <nyx_admin_extras>
