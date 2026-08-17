@@ -1,19 +1,35 @@
 # NYX Mobile Client Layer
 
-Esta pasta é reservada à camada Android complementar da NYX.
+Camada Android complementar do NYX. A GameMode SA-MP continua em Pawn e permanece autoritativa.
 
-## Java/Kotlin
+## Estrutura
 
-Será usada para launcher/cliente mobile, atualização de arquivos, integração com serviços e recursos específicos do Android.
+- `client/godot/` — cliente 3D/mobile atual e protótipo de sincronização.
+- `client/mobile/android/` — contratos Android/Kotlin para a integração nativa futura.
+- `docs/NYX_MOBILE_PROTOCOL_V1.md` — contrato de estado/eventos.
+- `docs/NYX_MOBILE_ASSET_PIPELINE.md` — pipeline dos assets GTA SA.
 
-## Importante
+## Responsabilidades Android
 
-A GameMode SA-MP continua em Pawn. Esta camada não substitui o servidor.
+- launcher e atualização de assets;
+- verificação de versão;
+- instalação/distribuição de conteúdo cliente;
+- integração com o bridge nativo;
+- diagnóstico local;
+- suporte ao HUD e controles mobile.
 
-## Skins customizadas
+## Responsabilidades do servidor
 
-Quando forem produzidas skins próprias NYX, os arquivos visuais do cliente devem ser distribuídos pelo pacote mobile/launcher e aplicados no lado do cliente. A GameMode continuará selecionando os IDs correspondentes.
+Pawn continua responsável por login, personagens, dinheiro, banco, inventário, empregos, organizações, propriedades, veículos persistentes, administração e regras de RP.
 
-IDs iniciais:
-- 1 — Mendigo masculino NYX
-- 2 — Mendigo feminino NYX
+## Bridge nativo
+
+`NyxNativeBridge.kt` define o contrato para uma futura implementação JNI/NDK/SA-MP Mobile. Ele **não** implementa RakNet por si só. A implementação nativa deverá converter o protocolo real do cliente SA-MP Mobile para o contrato NYX.
+
+## Skins
+
+Skins customizadas continuam sendo assets do cliente. A GameMode seleciona os IDs; o launcher/cliente distribui os arquivos visuais correspondentes.
+
+IDs iniciais NYX:
+- 1 — Mendigo masculino
+- 2 — Mendigo feminino
