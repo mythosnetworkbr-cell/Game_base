@@ -9,6 +9,7 @@
 #include <nyx_world>
 #include <nyx_properties>
 #include <nyx_graphics>
+#include <nyx_integrated_systems>
 
 #define D_LOGIN 1000
 #define D_REGISTER 1001
@@ -26,14 +27,24 @@ public OnGameModeInit()
     AddPlayerClass(NYX_DEFAULT_SKIN_MALE, NYX_SPAWN_X, NYX_SPAWN_Y, NYX_SPAWN_Z, 0.0, 0,0,0,0,0,0);
     AddPlayerClass(NYX_DEFAULT_SKIN_FEMALE, NYX_SPAWN_X, NYX_SPAWN_Y, NYX_SPAWN_Z, 0.0, 0,0,0,0,0,0);
     NYX_AccountsInit();
-    print("[NYX] Master GameMode inicializada.");
+    NYX_ProfileInit();
+    NYX_IntegratedInit();
+    print("[NYX] Master GameMode inicializada com sistemas integrados.");
     return 1;
 }
 
 public OnGameModeExit()
 {
     for (new i = 0; i < MAX_PLAYERS; i++)
-        if (IsPlayerConnected(i) && NYX_Player[i][NYX_Logged]) NYX_SaveAccount(i);
+    {
+        if (IsPlayerConnected(i) && NYX_Player[i][NYX_Logged])
+        {
+            NYX_SaveAccount(i);
+            NYX_ProfileSave(i);
+            NYX_IntegratedSave(i);
+        }
+    }
+    NYX_IntegratedExit();
     NYX_AccountsExit();
     return 1;
 }
@@ -44,14 +55,17 @@ public OnPlayerConnect(playerid)
     NYX_ResetJob(playerid);
     NYX_ResetMarriage(playerid);
     NYX_ResetAccountState(playerid);
+    NYX_IntegratedReset(playerid);
     NYX_PendingMarriage[playerid] = INVALID_PLAYER_ID;
     NYX_ApplyGraphicsProfile(playerid);
+    NYX_IntegratedLoad(playerid);
     ShowPlayerDialog(playerid, D_LOGIN, DIALOG_STYLE_PASSWORD, "NYX ROLEPLAY | LOGIN", "Bem-vindo ao NYX ROLEPLAY.\n\nDigite sua senha para entrar.", "ENTRAR", "REGISTRAR");
     return 1;
 }
 
 public OnPlayerDisconnect(playerid, reason)
 {
+    NYX_IntegratedDisconnect(playerid);
     if (NYX_AccountExists[playerid]) NYX_SaveAccount(playerid);
     if (NYX_JobVehicleId[playerid] != INVALID_VEHICLE_ID) DestroyVehicle(NYX_JobVehicleId[playerid]);
     NYX_ResetJob(playerid);
@@ -65,11 +79,20 @@ public OnPlayerSpawn(playerid)
     if (!NYX_Player[playerid][NYX_Logged]) return 1;
     NYX_ApplyGraphicsProfile(playerid);
     NYX_SetupSpawn(playerid);
+    if(NYX_JailSeconds[playerid] > 0)
+    {
+        SetPlayerPos(playerid, NYX_JAIL_X, NYX_JAIL_Y, NYX_JAIL_Z);
+        SetPlayerInterior(playerid, NYX_JAIL_INTERIOR);
+        SetPlayerVirtualWorld(playerid, NYX_JAIL_WORLD);
+        ResetPlayerWeapons(playerid);
+    }
     return 1;
 }
 
 public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 {
+    if(NYX_IntegratedDialog(playerid, dialogid, response, listitem)) return 1;
+
     switch (dialogid)
     {
         case D_LOGIN:
@@ -80,6 +103,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
             if (!NYX_AccountExists[playerid]) return ShowPlayerDialog(playerid, D_REGISTER, DIALOG_STYLE_PASSWORD, "NYX ROLEPLAY | REGISTRO", "Esta conta ainda nao existe. Crie sua senha.", "CRIAR", "VOLTAR");
             if (!NYX_CheckPassword(playerid, inputtext)) return ShowPlayerDialog(playerid, D_LOGIN, DIALOG_STYLE_PASSWORD, "NYX ROLEPLAY | LOGIN", "Senha incorreta.", "ENTRAR", "REGISTRAR");
             NYX_Player[playerid][NYX_Logged] = 1;
+            NYX_ProfileLoad(playerid);
             SendClientMessage(playerid, COLOR_SUCCESS, "Login realizado. Bem-vindo ao NYX ROLEPLAY!");
             SpawnPlayer(playerid);
             return 1;
@@ -92,6 +116,8 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
             if (NYX_AccountExists[playerid]) return ShowPlayerDialog(playerid, D_LOGIN, DIALOG_STYLE_PASSWORD, "NYX ROLEPLAY | LOGIN", "Esta conta ja existe.", "ENTRAR", "REGISTRAR");
             if (!NYX_CreateAccount(playerid, inputtext)) return SendClientMessage(playerid, COLOR_ERROR, "Nao foi possivel criar a conta.");
             NYX_Player[playerid][NYX_Logged] = 1;
+            NYX_ProfileSave(playerid);
+            NYX_IntegratedSave(playerid);
             SendClientMessage(playerid, COLOR_SUCCESS, "Conta criada! Bem-vindo ao NYX ROLEPLAY!");
             SpawnPlayer(playerid);
             return 1;
@@ -102,6 +128,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 
 public OnPlayerEnterCheckpoint(playerid)
 {
+    if(NYX_IntegratedCheckpoint(playerid)) return 1;
     if (NYX_JobRunning[playerid])
     {
         DisablePlayerCheckpoint(playerid);
@@ -113,11 +140,13 @@ public OnPlayerEnterCheckpoint(playerid)
 public OnPlayerCommandText(playerid, cmdtext[])
 {
     if (!NYX_Player[playerid][NYX_Logged]) return 1;
+    if(NYX_IntegratedCommand(playerid, cmdtext)) return 1;
+
     if (!strcmp(cmdtext, "/status", true))
     {
         new job[48], msg[192];
         NYX_GetJobName(NYX_PlayerJob[playerid], job, sizeof job);
-        format(msg, sizeof msg, "NYX | Dinheiro: $%d | NCoins: %d | Skin: %d | Emprego: %s", GetPlayerMoney(playerid), NYX_Player[playerid][NYX_NCoins], NYX_Player[playerid][NYX_Skin], job);
+        format(msg, sizeof msg, "NYX | Dinheiro: $%d | Banco: R$%d | NCoins: %d | Skin: %d | Emprego: %s", GetPlayerMoney(playerid), NYX_Bank[playerid], NYX_Player[playerid][NYX_NCoins], NYX_Player[playerid][NYX_Skin], job);
         return SendClientMessage(playerid, COLOR_WHITE, msg);
     }
     if (!strcmp(cmdtext, "/empregos", true)) return NYX_ShowJobs(playerid);
@@ -130,4 +159,16 @@ public OnPlayerCommandText(playerid, cmdtext[])
         return SendClientMessage(playerid, COLOR_NYX, msg);
     }
     return 0;
+}
+
+public OnPlayerUpdate(playerid)
+{
+    if(NYX_IntegratedUpdate(playerid)) return 1;
+    return 1;
+}
+
+public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart)
+{
+    if(NYX_IntegratedDamage(playerid)) return 0;
+    return 1;
 }
