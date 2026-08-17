@@ -5,6 +5,8 @@
 
 stock NYX_HandleCompletionCommand(playerid, cmdtext[])
 {
+    // Primeiro passa pelo conjunto de comandos administrativos migrados do chat.
+    if(NYX_MigratedAdminCommand(playerid,cmdtext)) return 1;
     if(NYX_PoliceCommands(playerid,cmdtext)) return 1;
     if(!strcmp(cmdtext,"/necessidades",true)) return NYX_ShowNeeds(playerid);
     if(!strcmp(cmdtext,"/comer",true)) return NYX_Eat(playerid,25);
