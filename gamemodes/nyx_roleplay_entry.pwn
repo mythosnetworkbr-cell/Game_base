@@ -9,6 +9,7 @@
 #define OnPlayerConnect NYX_Legacy_OnPlayerConnect
 #define OnPlayerDisconnect NYX_Legacy_OnPlayerDisconnect
 #define OnDialogResponse NYX_Legacy_OnDialogResponse
+#define OnPlayerCommandText NYX_Legacy_OnPlayerCommandText
 
 #include "nyx_roleplay.pwn"
 
@@ -21,8 +22,15 @@
 #undef OnPlayerConnect
 #undef OnPlayerDisconnect
 #undef OnDialogResponse
+#undef OnPlayerCommandText
 
 #include <nyx_identity_v3>
+
+forward NYX_AutoSave();
+forward OnPlayerConnect(playerid);
+forward OnPlayerDisconnect(playerid, reason);
+forward OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]);
+forward OnPlayerCommandText(playerid, cmdtext[]);
 
 public NYX_AutoSave()
 {
@@ -67,16 +75,16 @@ public OnDialogResponse(playerid,dialogid,response,listitem,inputtext[])
     {
         case NYX_AUTH_NAME:
         {
-            if(strlen(inputtext)<3 || strlen(inputtext)>NYX_AUTH_MAX_NAME)
+            if(!NYX_IdentityValidateName(inputtext))
             {
-                SendClientMessage(playerid,COLOR_ERROR,"Nome invalido. Use de 3 a 24 caracteres.");
+                SendClientMessage(playerid,COLOR_ERROR,"Nome invalido. Use de 3 a 24 caracteres: letras, numeros e _.");
                 return NYX_IdentityShowNameDialog(playerid);
             }
             if(response)
             {
                 if(NYX_IdentityFindByName(inputtext)<=0)
                 {
-                    SendClientMessage(playerid,COLOR_ERROR,"Conta nao encontrada. Use REGISTRAR para criar uma nova conta.");
+                    SendClientMessage(playerid,COLOR_ERROR,"Conta nao encontrada. Clique em REGISTRAR para criar uma conta.");
                     return NYX_IdentityShowNameDialog(playerid);
                 }
                 format(NYX_IdentityName[playerid],sizeof NYX_IdentityName[],"%s",inputtext);
@@ -95,9 +103,9 @@ public OnDialogResponse(playerid,dialogid,response,listitem,inputtext[])
         {
             if(!response)
                 return NYX_IdentityShowNameDialog(playerid);
-            if(strlen(inputtext)<4)
+            if(strlen(inputtext)<4 || strlen(inputtext)>NYX_AUTH_MAX_PASSWORD)
             {
-                SendClientMessage(playerid,COLOR_ERROR,"A senha precisa ter pelo menos 4 caracteres.");
+                SendClientMessage(playerid,COLOR_ERROR,"A senha precisa ter de 4 a 63 caracteres.");
                 if(NYX_AuthStage[playerid]==4) return NYX_IdentityShowRegisterPassword(playerid);
                 return NYX_IdentityShowLoginPassword(playerid);
             }
@@ -105,7 +113,7 @@ public OnDialogResponse(playerid,dialogid,response,listitem,inputtext[])
             {
                 if(!NYX_IdentityCreate(playerid,NYX_IdentityName[playerid],inputtext))
                 {
-                    SendClientMessage(playerid,COLOR_ERROR,"Nao foi possivel criar a conta. Verifique o nome e tente novamente.");
+                    SendClientMessage(playerid,COLOR_ERROR,"Nao foi possivel criar a conta. O nome pode ja estar em uso.");
                     return NYX_IdentityShowNameDialog(playerid);
                 }
                 NYX_Player[playerid][NYX_Logged]=1;
@@ -113,7 +121,6 @@ public OnDialogResponse(playerid,dialogid,response,listitem,inputtext[])
                 GivePlayerMoney(playerid,NYX_Player[playerid][NYX_Money]);
                 NYX_SaveAccount(playerid);
                 SendClientMessage(playerid,COLOR_SUCCESS,"Conta criada e salva com sucesso!");
-                SendClientMessage(playerid,COLOR_WHITE,"Seu ID NYX comeca em 1 e fica vinculado ao seu nome, senha e IP.");
                 SpawnPlayer(playerid);
                 return 1;
             }
@@ -133,11 +140,31 @@ public OnDialogResponse(playerid,dialogid,response,listitem,inputtext[])
                 SendClientMessage(playerid,COLOR_ERROR,"Senha incorreta.");
                 return NYX_IdentityShowLoginPassword(playerid);
             }
-            SendClientMessage(playerid,COLOR_ERROR,"Conta nao encontrada.");
             return NYX_IdentityShowNameDialog(playerid);
         }
     }
     return NYX_Legacy_OnDialogResponse(playerid,dialogid,response,listitem,inputtext);
+}
+
+public OnPlayerCommandText(playerid,cmdtext[])
+{
+    if(!NYX_Player[playerid][NYX_Logged])
+        return 1;
+
+    if(!strcmp(cmdtext,"/meusdados",true))
+    {
+        new ip[46],msg[256];
+        GetPlayerIp(playerid,ip,sizeof ip);
+        format(msg,sizeof msg,"NYX | ID: %d | Nome: %s | IP: %s | Dinheiro: $%d | Banco: $%d",NYX_IdentityId[playerid],NYX_IdentityName[playerid],ip,GetPlayerMoney(playerid),NYX_Bank[playerid]);
+        return SendClientMessage(playerid,COLOR_WHITE,msg);
+    }
+    if(!strcmp(cmdtext,"/meuid",true))
+    {
+        new msg[64];
+        format(msg,sizeof msg,"Seu ID NYX: %d",NYX_IdentityId[playerid]);
+        return SendClientMessage(playerid,COLOR_NYX,msg);
+    }
+    return NYX_Legacy_OnPlayerCommandText(playerid,cmdtext);
 }
 
 // SA-MP/Pawn requires a valid AMX entry point.
