@@ -25,6 +25,7 @@
 #undef OnPlayerCommandText
 
 #include <nyx_identity_v3>
+#include <nyx_ipban>
 
 forward NYX_AutoSave();
 forward OnPlayerConnect(playerid);
@@ -51,6 +52,12 @@ public NYX_AutoSave()
 
 public OnPlayerConnect(playerid)
 {
+    if(NYX_IPIsBanned(playerid))
+    {
+        SendClientMessage(playerid,COLOR_ERROR,"Seu IP esta banido da NYX ROLEPLAY.");
+        SetTimerEx("NYX_KickBanned",250,false,"i",playerid);
+        return 1;
+    }
     NYX_ResetPlayer(playerid);
     NYX_ResetJob(playerid);
     NYX_ResetMarriage(playerid);
@@ -59,6 +66,13 @@ public OnPlayerConnect(playerid)
     NYX_IdentityReset(playerid);
     NYX_ApplyGraphicsProfile(playerid);
     NYX_IdentityShowNameDialog(playerid);
+    return 1;
+}
+
+forward NYX_KickBanned(playerid);
+public NYX_KickBanned(playerid)
+{
+    if(IsPlayerConnected(playerid)) Kick(playerid);
     return 1;
 }
 
@@ -101,8 +115,7 @@ public OnDialogResponse(playerid,dialogid,response,listitem,inputtext[])
         }
         case NYX_AUTH_PASSWORD:
         {
-            if(!response)
-                return NYX_IdentityShowNameDialog(playerid);
+            if(!response) return NYX_IdentityShowNameDialog(playerid);
             if(strlen(inputtext)<4 || strlen(inputtext)>NYX_AUTH_MAX_PASSWORD)
             {
                 SendClientMessage(playerid,COLOR_ERROR,"A senha precisa ter de 4 a 63 caracteres.");
@@ -148,9 +161,7 @@ public OnDialogResponse(playerid,dialogid,response,listitem,inputtext[])
 
 public OnPlayerCommandText(playerid,cmdtext[])
 {
-    if(!NYX_Player[playerid][NYX_Logged])
-        return 1;
-
+    if(!NYX_Player[playerid][NYX_Logged]) return 1;
     if(!strcmp(cmdtext,"/meusdados",true))
     {
         new ip[46],msg[256];
@@ -167,5 +178,4 @@ public OnPlayerCommandText(playerid,cmdtext[])
     return NYX_Legacy_OnPlayerCommandText(playerid,cmdtext);
 }
 
-// SA-MP/Pawn requires a valid AMX entry point.
 main() {}
