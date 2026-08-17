@@ -26,6 +26,9 @@
 
 #include <nyx_identity_v3>
 #include <nyx_ipban>
+#include <nyx_admin>
+#include <nyx_admin_hierarchy>
+#include <nyx_admin_hierarchy_cmds>
 
 forward NYX_AutoSave();
 forward OnPlayerConnect(playerid);
