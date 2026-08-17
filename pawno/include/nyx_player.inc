@@ -22,6 +22,7 @@ enum E_NYX_PLAYER {
     NYX_JailTime,
     NYX_PaydayTime
 };
+#define NYX_Money NYX_Cash
 #define NYX_NCoins NYX_PlayerNCoins
 
 new NYX_Player[MAX_PLAYERS][E_NYX_PLAYER];
