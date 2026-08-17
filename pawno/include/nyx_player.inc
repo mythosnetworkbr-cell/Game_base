@@ -13,7 +13,7 @@
 enum E_NYX_PLAYER {
     NYX_Logged,
     NYX_Skin,
-    NYX_Money,
+    NYX_Cash,
     NYX_PlayerNCoins,
     NYX_Org,
     NYX_OrgRank,
@@ -38,14 +38,14 @@ stock NYX_AccountExists(playerid){new path[96];NYX_AccountFile(playerid,path,siz
 
 stock NYX_ResetPlayer(playerid)
 {
-    NYX_Player[playerid][NYX_Logged]=0;NYX_Player[playerid][NYX_Skin]=(playerid%2)?2:1;NYX_Player[playerid][NYX_Money]=NYX_START_MONEY;NYX_Player[playerid][NYX_NCoins]=0;NYX_Player[playerid][NYX_Org]=-1;NYX_Player[playerid][NYX_OrgRank]=0;NYX_Player[playerid][NYX_Admin]=0;NYX_Player[playerid][NYX_Warnings]=0;NYX_Player[playerid][NYX_JailTime]=0;NYX_Player[playerid][NYX_PaydayTime]=0;NYX_Bank[playerid]=NYX_BANK_START;NYX_JailReason[playerid][0]=EOS;NYX_AccountPassword[playerid][0]=EOS;NYX_AccountLoaded[playerid]=false;NYX_InventoryReset(playerid);NYX_LegacyInitPlayer(playerid);NYX_VehicleReset(playerid);NYX_PoliceReset(playerid);return 1;
+    NYX_Player[playerid][NYX_Logged]=0;NYX_Player[playerid][NYX_Skin]=(playerid%2)?2:1;NYX_Player[playerid][NYX_Cash]=NYX_START_MONEY;NYX_Player[playerid][NYX_NCoins]=0;NYX_Player[playerid][NYX_Org]=-1;NYX_Player[playerid][NYX_OrgRank]=0;NYX_Player[playerid][NYX_Admin]=0;NYX_Player[playerid][NYX_Warnings]=0;NYX_Player[playerid][NYX_JailTime]=0;NYX_Player[playerid][NYX_PaydayTime]=0;NYX_Bank[playerid]=NYX_BANK_START;NYX_JailReason[playerid][0]=EOS;NYX_AccountPassword[playerid][0]=EOS;NYX_AccountLoaded[playerid]=false;NYX_InventoryReset(playerid);NYX_LegacyInitPlayer(playerid);NYX_VehicleReset(playerid);NYX_PoliceReset(playerid);return 1;
 }
 
 stock NYX_SaveAccount(playerid)
 {
     if(!NYX_AccountLoaded[playerid])return 0;NYX_LegacyTick(playerid);new path[96],line[128],file;NYX_AccountFile(playerid,path,sizeof path);file=fopen(path,io_write);if(!file)return 0;
     fwrite(file,NYX_AccountPassword[playerid]);
-    format(line,sizeof line,"%d",NYX_Player[playerid][NYX_Money]);fwrite(file,line);
+    format(line,sizeof line,"%d",NYX_Player[playerid][NYX_Cash]);fwrite(file,line);
     format(line,sizeof line,"%d",NYX_Bank[playerid]);fwrite(file,line);
     format(line,sizeof line,"%d",NYX_Player[playerid][NYX_Skin]);fwrite(file,line);
     format(line,sizeof line,"%d",NYX_Player[playerid][NYX_NCoins]);fwrite(file,line);
@@ -64,7 +64,7 @@ stock NYX_SaveAccount(playerid)
 stock NYX_LoadAccount(playerid,password[])
 {
     new path[96],line[128],file;NYX_AccountFile(playerid,path,sizeof path);file=fopen(path,io_read);if(!file)return 0;fread(file,line,sizeof line);line[sizeof line-1]=EOS;if(strcmp(line,password,false)!=0){fclose(file);return -1;}format(NYX_AccountPassword[playerid],64,"%s",password);
-    fread(file,line,sizeof line);NYX_Player[playerid][NYX_Money]=strval(line);fread(file,line,sizeof line);NYX_Bank[playerid]=strval(line);fread(file,line,sizeof line);NYX_Player[playerid][NYX_Skin]=strval(line);fread(file,line,sizeof line);NYX_Player[playerid][NYX_NCoins]=strval(line);fread(file,line,sizeof line);NYX_Player[playerid][NYX_Org]=strval(line);fread(file,line,sizeof line);NYX_Player[playerid][NYX_OrgRank]=strval(line);fread(file,line,sizeof line);NYX_Player[playerid][NYX_Admin]=strval(line);
+    fread(file,line,sizeof line);NYX_Player[playerid][NYX_Cash]=strval(line);fread(file,line,sizeof line);NYX_Bank[playerid]=strval(line);fread(file,line,sizeof line);NYX_Player[playerid][NYX_Skin]=strval(line);fread(file,line,sizeof line);NYX_Player[playerid][NYX_NCoins]=strval(line);fread(file,line,sizeof line);NYX_Player[playerid][NYX_Org]=strval(line);fread(file,line,sizeof line);NYX_Player[playerid][NYX_OrgRank]=strval(line);fread(file,line,sizeof line);NYX_Player[playerid][NYX_Admin]=strval(line);
     NYX_Player[playerid][NYX_Warnings]=0;NYX_Player[playerid][NYX_JailTime]=0;NYX_JailReason[playerid][0]=EOS;NYX_Player[playerid][NYX_PaydayTime]=0;
     if(fread(file,line,sizeof line))NYX_Player[playerid][NYX_Warnings]=strval(line);
     if(fread(file,line,sizeof line))NYX_Player[playerid][NYX_JailTime]=strval(line);
@@ -78,12 +78,12 @@ stock NYX_LoadAccount(playerid,password[])
 
 stock NYX_CreateAccount(playerid,password[])
 {
-    if(NYX_AccountExists(playerid))return 0;format(NYX_AccountPassword[playerid],64,"%s",password);NYX_Player[playerid][NYX_Money]=NYX_START_MONEY;NYX_Bank[playerid]=NYX_BANK_START;NYX_Player[playerid][NYX_NCoins]=0;NYX_Player[playerid][NYX_Org]=-1;NYX_Player[playerid][NYX_OrgRank]=0;NYX_Player[playerid][NYX_Admin]=0;NYX_Player[playerid][NYX_Warnings]=0;NYX_Player[playerid][NYX_JailTime]=0;NYX_Player[playerid][NYX_PaydayTime]=0;NYX_JailReason[playerid][0]=EOS;NYX_AccountLoaded[playerid]=true;NYX_InventoryGiveStarter(playerid);NYX_IssuePassport(playerid);return NYX_SaveAccount(playerid);
+    if(NYX_AccountExists(playerid))return 0;format(NYX_AccountPassword[playerid],64,"%s",password);NYX_Player[playerid][NYX_Cash]=NYX_START_MONEY;NYX_Bank[playerid]=NYX_BANK_START;NYX_Player[playerid][NYX_NCoins]=0;NYX_Player[playerid][NYX_Org]=-1;NYX_Player[playerid][NYX_OrgRank]=0;NYX_Player[playerid][NYX_Admin]=0;NYX_Player[playerid][NYX_Warnings]=0;NYX_Player[playerid][NYX_JailTime]=0;NYX_Player[playerid][NYX_PaydayTime]=0;NYX_JailReason[playerid][0]=EOS;NYX_AccountLoaded[playerid]=true;NYX_InventoryGiveStarter(playerid);NYX_IssuePassport(playerid);return NYX_SaveAccount(playerid);
 }
 
 stock NYX_IsValidSkin(skinid){return skinid>=NYX_FIRST_SKIN_ID&&skinid<=NYX_LAST_SKIN_ID;}
-stock NYX_SetupSpawn(playerid){SetPlayerPos(playerid,NYX_SPAWN_X,NYX_SPAWN_Y,NYX_SPAWN_Z);SetPlayerFacingAngle(playerid,0.0);SetPlayerSkin(playerid,NYX_Player[playerid][NYX_Skin]);ResetPlayerMoney(playerid);GivePlayerMoney(playerid,NYX_Player[playerid][NYX_Money]);SetCameraBehindPlayer(playerid);return 1;}
-stock NYX_SyncMoney(playerid){NYX_Player[playerid][NYX_Money]=GetPlayerMoney(playerid);return 1;}
+stock NYX_SetupSpawn(playerid){SetPlayerPos(playerid,NYX_SPAWN_X,NYX_SPAWN_Y,NYX_SPAWN_Z);SetPlayerFacingAngle(playerid,0.0);SetPlayerSkin(playerid,NYX_Player[playerid][NYX_Skin]);ResetPlayerMoney(playerid);GivePlayerMoney(playerid,NYX_Player[playerid][NYX_Cash]);SetCameraBehindPlayer(playerid);return 1;}
+stock NYX_SyncMoney(playerid){NYX_Player[playerid][NYX_Cash]=GetPlayerMoney(playerid);return 1;}
 stock NYX_Deposit(playerid,amount){if(amount<=0||amount>GetPlayerMoney(playerid))return 0;GivePlayerMoney(playerid,-amount);NYX_Bank[playerid]+=amount;NYX_SyncMoney(playerid);NYX_SaveAccount(playerid);return 1;}
 stock NYX_Withdraw(playerid,amount){if(amount<=0||amount>NYX_Bank[playerid])return 0;GivePlayerMoney(playerid,amount);NYX_Bank[playerid]-=amount;NYX_SyncMoney(playerid);NYX_SaveAccount(playerid);return 1;}
 
