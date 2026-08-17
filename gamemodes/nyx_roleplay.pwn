@@ -36,19 +36,21 @@ public OnGameModeInit()
     NYX_InitProperties();
     NYX2_Init();
     NYX_AdminInit();
+    NYX_AdminExtrasInit();
     SetTimer("NYX_AutoSave",60000,true);
     Create3DTextLabel("{8B5CF6}NYX ROLEPLAY\n{FFFFFF}Prefeitura / Centro",COLOR_WHITE,NYX_SPAWN_X,NYX_SPAWN_Y,21.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}HOSPITAL CENTRAL NYX",COLOR_WHITE,1520.0,-1675.0,15.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}DELEGACIA CENTRAL NYX",COLOR_WHITE,1550.0,-1600.0,15.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}CASSINO NYX",COLOR_WHITE,2200.0,-1670.0,16.0,30.0,0,1);
     Create3DTextLabel("{8B5CF6}SEX SHOP NYX",COLOR_WHITE,1350.0,-1740.0,15.0,30.0,0,1);
-    Create3DTextLabel("{8B5CF6}IGREJA CENTRAL NYX",COLOR_WHITE,1420.0,-1710.0,15.0,30.0,0,1);
+    Create3DTextLabel("{8B5CF6}IGREJA CENTRAL NYX",COLOR_WHITE,1420.0,-1710.0,15.0,30.0,30.0,0,1);
     print("[NYX] Core RP online: contas, banco, empregos, orgs, casamento, propriedades, NCoins e sistemas avancados.");
     return 1;
 }
 
 public OnGameModeExit()
 {
+    NYX_AdminExtrasShutdown();
     NYX_AdminShutdown();
     return 1;
 }
@@ -193,6 +195,11 @@ stock NYX_ShowBank(playerid)
 public OnPlayerCommandText(playerid,cmdtext[])
 {
     if(!NYX_Player[playerid][NYX_Logged])return 1;
+    // Os comandos enviados anteriormente sao executados nesta ordem: extras
+    // (Payday, logs, hierarquia, GMX, clima/hora e ban temporario) e depois
+    // o modulo administrativo migrado (kick, jail, teleporte, spec, etc.).
+    if(NYX_AdminExtrasCommand(playerid,cmdtext))return 1;
+    if(NYX_MigratedAdminCommand(playerid,cmdtext))return 1;
     if(NYX_AdminCommand(playerid,cmdtext))return 1;
     if(NYX_HandleCompletionCommand(playerid,cmdtext))return 1;
     if(NYX_MedicalCommands(playerid,cmdtext))return 1;
@@ -218,8 +225,5 @@ public OnPlayerCommandText(playerid,cmdtext[])
     if(strfind(cmdtext,"/casar ",true)==0){new target=strval(cmdtext[7]);if(!NYX_MarriageCanPropose(playerid,target))return SendClientMessage(playerid,COLOR_ERROR,"Nao e possivel casar com este jogador.");NYX_PendingMarriage[target]=playerid;return NYX_MarriageSendProposal(playerid,target);}
     if(!strcmp(cmdtext,"/aceitarcasamento",true)){new proposer=NYX_PendingMarriage[playerid];if(proposer==INVALID_PLAYER_ID||!NYX_MarriageCanPropose(proposer,playerid))return SendClientMessage(playerid,COLOR_WARNING,"Nenhuma proposta valida.");NYX_MarryPlayers(proposer,playerid);NYX_PendingMarriage[playerid]=INVALID_PLAYER_ID;NYX_PendingMarriage[proposer]=INVALID_PLAYER_ID;SendClientMessage(proposer,COLOR_SUCCESS,"Casamento realizado!");return SendClientMessage(playerid,COLOR_SUCCESS,"Casamento realizado!");}
     if(!strcmp(cmdtext,"/divorcio",true)){if(!NYX_Divorce(playerid))return SendClientMessage(playerid,COLOR_WARNING,"Voce nao esta casado.");return SendClientMessage(playerid,COLOR_SUCCESS,"Divorcio realizado.");}
-    if(!strcmp(cmdtext,"/loja",true))return ShowPlayerDialog(playerid,D_STORE,DIALOG_STYLE_MSGBOX,"NYX | NCOINS","Moeda premium NYX. Compras reais devem passar pelo backend oficial.","OK","");
-    if(!strcmp(cmdtext,"/gps",true)){SetPlayerCheckpoint(playerid,NYX_SPAWN_X,NYX_SPAWN_Y,NYX_SPAWN_Z,4.0);return SendClientMessage(playerid,COLOR_SUCCESS,"GPS marcado: Centro / Prefeitura NYX.");}
-    if(!strcmp(cmdtext,"/ajuda",true))return ShowPlayerDialog(playerid,D_HELP,DIALOG_STYLE_MSGBOX,"NYX | AJUDA","/necessidades /comer /beber /passaporte /negocios\n/garagem /guardarveiculo ID /assaltar /pesca /pescar\n/banco /depositar /sacar /conta /salvar /payday\n/empregos /trabalhar /concluir /orgs /orglista\n/negocios /comprarnegocio ID /chamarsamu /samuatender ID\n/hospital /estado /curar /pena /rpajuda\n/ncoins /loja /casar ID /aceitarcasamento /divorcio\n/mundo /gps","FECHAR","");
     return 0;
 }
