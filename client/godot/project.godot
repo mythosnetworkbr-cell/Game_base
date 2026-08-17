@@ -1,8 +1,11 @@
 [application]
 config/name="NYX Roleplay 3D"
-config/version="0.2.0-mobile"
+config/version="0.2.1-mobile"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
+
+[autoload]
+NyxSession="*res://scripts/nyx_session.gd"
 
 [display]
 window/size/viewport_width=1280
