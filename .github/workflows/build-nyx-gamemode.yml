@@ -31,6 +31,41 @@ jobs:
           find pawno/include -maxdepth 1 -type f -name '*.inc' -exec cp {} build/include/ \;
           test -s build/include/a_samp.inc
 
+      - name: Integrate NYX Admin Text dispatcher
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('gamemodes/nyx_roleplay.pwn')
+          text = path.read_text(encoding='utf-8')
+
+          include = '#include <nyx_admin_text>'
+          if include not in text:
+              marker = '#include <a_samp>'
+              if marker not in text:
+                  raise SystemExit('ERRO: include <a_samp> nao encontrado; integracao abortada.')
+              text = text.replace(marker, marker + '\n' + include, 1)
+
+          # Nao dependa de uma assinatura textual exata. O marcador aceita
+          # espacos, tabs e variacoes de declaracao da callback.
+          callback = re.compile(r'public\s+OnPlayerCommandText\s*\(\s*playerid\s*,\s*cmdtext\s*\[\s*\]\s*\)\s*\{')
+          match = callback.search(text)
+          if not match:
+              raise SystemExit('ERRO: callback OnPlayerCommandText nao encontrada; nenhum arquivo foi compilado.')
+
+          dispatch = '    if(NYX_AdminCommandText(playerid,cmdtext)) return 1;\n'
+          body_start = match.end()
+          if 'NYX_AdminCommandText(playerid,cmdtext)' not in text[body_start:body_start + 1200]:
+              text = text[:body_start] + '\n' + dispatch + text[body_start:]
+
+          path.write_text(text, encoding='utf-8')
+          print('NYX Admin Text integrado com sucesso.')
+          PY
+
+          grep -n "#include <nyx_admin_text>" gamemodes/nyx_roleplay.pwn
+          grep -n "NYX_AdminCommandText(playerid,cmdtext)" gamemodes/nyx_roleplay.pwn
+
       - name: Compile NYX
         run: |
           COMPILER=$(find pawnc -type f -name pawncc | head -1)
@@ -38,7 +73,8 @@ jobs:
           chmod +x "$COMPILER"
           export LD_LIBRARY_PATH="$(dirname "$COMPILER")/../lib:${LD_LIBRARY_PATH}"
           mkdir -p build/gamemodes
-          "$COMPILER" "gamemodes/nyx_roleplay.pwn" "-i:pawno/include" "-i:build/include" "-;+" "-(+" "-Z-" "-d0" "-O2" "-t4" "-o:build/gamemodes/nyx_roleplay"
+          set -o pipefail
+          "$COMPILER" "gamemodes/nyx_roleplay.pwn" "-i:pawno/include" "-i:build/include" "-;+" "-(+" "-Z-" "-d0" "-O2" "-t4" "-o:build/gamemodes/nyx_roleplay" 2>&1 | tee build/compile.log
 
       - name: Verify AMX
         run: |
