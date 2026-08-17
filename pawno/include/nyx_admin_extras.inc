@@ -9,6 +9,14 @@
 
 new NYX_AdminExtrasTimer;
 
+stock SendAdminMessage(color,const message[])
+{
+    for(new i=0;i<MAX_PLAYERS;i++)
+        if(IsPlayerConnected(i)&&NYX_Player[i][NYX_Admin]>0)
+            SendClientMessage(i,color,message);
+    return 1;
+}
+
 stock NYX_AdminExtrasInit()
 {
     NYX_AdminExtrasTimer=SetTimer("NYX_AdminExtrasSecond",1000,true);
@@ -57,9 +65,8 @@ stock NYX_AdminExtrasLogLine(playerid,targetid,const command[],const details[])
 
 stock NYX_AdminExtrasCommand(playerid,cmdtext[])
 {
-    new id,level,hour,weather,minutes,days,amount,start,model,Float:x,Float:y,Float:z,Float:a,msg[256],rest[160],reason[96],name[MAX_PLAYER_NAME],File:file;
+    new id,level,hour,weather,days,start,model,Float:x,Float:y,Float:z,Float:a,msg[256],rest[160],reason[96],name[MAX_PLAYER_NAME],File:file;
 
-    // /payday - consulta sem qualquer bonus para staff.
     if(!strcmp(cmdtext,"/payday",true))
     {
         new left=NYX_PAYDAY_INTERVAL-NYX_Player[playerid][NYX_PaydayTime];
@@ -68,7 +75,6 @@ stock NYX_AdminExtrasCommand(playerid,cmdtext[])
         return SendClientMessage(playerid,COLOR_WARNING,msg);
     }
 
-    // /setadmin - somente Owner (100). Hierarquia aceita 0,1,2,3,4,5,6,7,80,100.
     if(strfind(cmdtext,"/setadmin ",true)==0 || strfind(cmdtext,"/daradmin ",true)==0)
     {
         if(NYX_Player[playerid][NYX_Admin]<100)return SendClientMessage(playerid,COLOR_ERROR,"[ERRO] Apenas Owner pode alterar a Staff.");
@@ -78,13 +84,11 @@ stock NYX_AdminExtrasCommand(playerid,cmdtext[])
         if(!IsPlayerConnected(id))return SendClientMessage(playerid,COLOR_ERROR,"Jogador nao encontrado.");
         if(id==playerid)return SendClientMessage(playerid,COLOR_ERROR,"Voce nao pode alterar o proprio cargo.");
         if(!(level==0||level==1||level==2||level==3||level==4||level==5||level==6||level==7||level==80||level==100))return SendClientMessage(playerid,COLOR_ERROR,"Nivel invalido.");
-        if(level>=100 && id!=playerid)return SendClientMessage(playerid,COLOR_ERROR,"Somente um Owner pode existir pelo controle desta hierarquia.");
         NYX_Player[id][NYX_Admin]=level;NYX_SaveAccount(id);GetPlayerName(id,name,sizeof name);
-        format(msg,sizeof msg,"[STAFF] %s recebeu %s (nivel %d).",name,(level==0)?"Jogador":"cargo administrativo",level);SendAdminMessage(COLOR_WARNING,msg);
+        format(msg,sizeof msg,"[STAFF] %s recebeu cargo nivel %d.",name,level);SendAdminMessage(COLOR_WARNING,msg);
         NYX_AdminExtrasLogLine(playerid,id,"/setadmin",msg);return 1;
     }
 
-    // /gmx - somente Owner.
     if(!strcmp(cmdtext,"/gmx",true))
     {
         if(NYX_Player[playerid][NYX_Admin]<100)return SendClientMessage(playerid,COLOR_ERROR,"[ERRO] Apenas Owner pode reiniciar a GM.");
@@ -94,7 +98,6 @@ stock NYX_AdminExtrasCommand(playerid,cmdtext[])
         SetTimer("NYX_ExecuteGMX",1000,false);return 1;
     }
 
-    // /clima [0-45] e /hora [0-23].
     if(strfind(cmdtext,"/clima ",true)==0)
     {
         if(NYX_Player[playerid][NYX_Admin]<2)return SendClientMessage(playerid,COLOR_ERROR,"[ERRO] Sem permissao.");weather=strval(cmdtext[7]);if(weather<0||weather>45)return SendClientMessage(playerid,COLOR_ERROR,"Clima deve ser 0-45.");SetWeather(weather);format(msg,sizeof msg,"[ADM] Clima alterado para %d.",weather);SendAdminMessage(COLOR_WARNING,msg);NYX_AdminExtrasLogLine(playerid,INVALID_PLAYER_ID,"/clima",cmdtext[7]);return 1;
@@ -104,7 +107,6 @@ stock NYX_AdminExtrasCommand(playerid,cmdtext[])
         if(NYX_Player[playerid][NYX_Admin]<2)return SendClientMessage(playerid,COLOR_ERROR,"[ERRO] Sem permissao.");hour=strval(cmdtext[6]);if(hour<0||hour>23)return SendClientMessage(playerid,COLOR_ERROR,"Hora deve ser 0-23.");SetWorldTime(hour);format(msg,sizeof msg,"[ADM] Hora alterada para %d:00.",hour);SendAdminMessage(COLOR_WARNING,msg);NYX_AdminExtrasLogLine(playerid,INVALID_PLAYER_ID,"/hora",cmdtext[6]);return 1;
     }
 
-    // /verlogs - Manager+.
     if(strfind(cmdtext,"/verlogs",true)==0)
     {
         if(NYX_Player[playerid][NYX_Admin]<5)return SendClientMessage(playerid,COLOR_ERROR,"[ERRO] Manager ou superior.");
@@ -116,8 +118,6 @@ stock NYX_AdminExtrasCommand(playerid,cmdtext[])
         ShowPlayerDialog(playerid,NYX_ADMIN_LOG_DIALOG,DIALOG_STYLE_LIST,"NYX | LOGS ADMINISTRATIVOS",content,"FECHAR","");return 1;
     }
 
-    // /ban com duracao: 0 permanente, >0 dias. Este bloco fica antes do legado para
-    // garantir que a versao com tempo seja a usada.
     if(strfind(cmdtext,"/ban ",true)==0)
     {
         if(NYX_Player[playerid][NYX_Admin]<2)return SendClientMessage(playerid,COLOR_ERROR,"[ERRO] Admin Assistente ou superior.");
@@ -127,7 +127,6 @@ stock NYX_AdminExtrasCommand(playerid,cmdtext[])
         GetPlayerName(id,name,sizeof name);new ip[46];GetPlayerIp(id,ip,sizeof ip);new path[128];format(path,sizeof path,"scriptfiles/nyx_ban_%s.dat",name);file=fopen(path,io_write);if(file){new banline[220];format(banline,sizeof banline,"%d|%d|%s|%s|%s",gettime(),days,ip,name,reason);fwrite(file,banline);fclose(file);}format(msg,sizeof msg,"[BAN] %s foi banido. Duracao: %s. Motivo: %s",name,days>0?"temporario":"permanente",reason);SendAdminMessage(COLOR_ERROR,msg);NYX_AdminExtrasLogLine(playerid,id,"/ban",reason);SetTimerEx("NYX_MigratedDelayedKick",100,false,"i",id);return 1;
     }
 
-    // /v e /criarcarro: criacao temporaria para staff.
     if(strfind(cmdtext,"/criarcarro ",true)==0||strfind(cmdtext,"/v ",true)==0)
     {
         if(NYX_Player[playerid][NYX_Admin]<3)return SendClientMessage(playerid,COLOR_ERROR,"[ERRO] Admin 2 ou superior.");start=(strfind(cmdtext,"/v ",true)==0)?3:12;model=strval(cmdtext[start]);if(model<400||model>611)return SendClientMessage(playerid,COLOR_ERROR,"Modelo deve ser 400-611.");GetPlayerPos(playerid,x,y,z);GetPlayerFacingAngle(playerid,a);new veh=CreateVehicle(model,x+2.0,y,z,a,-1,-1,-1);LinkVehicleToInterior(veh,GetPlayerInterior(playerid));SetVehicleVirtualWorld(veh,GetPlayerVirtualWorld(playerid));PutPlayerInVehicle(playerid,veh,0);format(msg,sizeof msg,"[ADM] Veiculo %d criado (ID %d).",model,veh);SendClientMessage(playerid,COLOR_SUCCESS,msg);NYX_AdminExtrasLogLine(playerid,INVALID_PLAYER_ID,"/v",msg);return 1;
