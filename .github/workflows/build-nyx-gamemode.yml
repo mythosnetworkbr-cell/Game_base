@@ -38,7 +38,7 @@ jobs:
           chmod +x "$COMPILER"
           export LD_LIBRARY_PATH="$(dirname "$COMPILER")/../lib:${LD_LIBRARY_PATH}"
           mkdir -p build/gamemodes
-          "$COMPILER" "gamemodes/nyx_roleplay.pwn" "-i pawno/include" "-i build/include" "-;+" "-(+" "-Z-" "-d0" "-O2" "-t4" "-o:build/gamemodes/nyx_roleplay"
+          "$COMPILER" "gamemodes/nyx_roleplay.pwn" "-i:pawno/include" "-i:build/include" "-;+" "-(+" "-Z-" "-d0" "-O2" "-t4" "-o:build/gamemodes/nyx_roleplay"
 
       - name: Verify AMX
         run: |
