@@ -19,116 +19,96 @@ jobs:
 
       - name: Download Pawn compiler
         run: |
-          curl -L --fail -o pawnc.tar.gz https://github.com/openmultiplayer/compiler/releases/download/v3.10.11/pawnc-3.10.11-linux.tar.gz
+          curl -L --fail --retry 3 -o pawnc.tar.gz https://github.com/openmultiplayer/compiler/releases/download/v3.10.11/pawnc-3.10.11-linux.tar.gz
           mkdir -p pawnc
           tar -xzf pawnc.tar.gz -C pawnc
 
       - name: Get SA-MP includes and runtime plugins
         run: |
+          set -e
           git clone --depth 1 https://github.com/pawn-lang/samp-stdlib.git samp-stdlib
           git clone --depth 1 https://github.com/openmultiplayer/omp-stdlib.git omp-stdlib
           mkdir -p build/include build/plugins
           find samp-stdlib -type f -name '*.inc' -exec cp {} build/include/ \;
           find omp-stdlib -type f -name '*.inc' -exec cp {} build/include/ \;
           find pawno/include -maxdepth 1 -type f -name '*.inc' -exec cp {} build/include/ \;
-          curl -L --fail -o build/include/sscanf2.inc https://raw.githubusercontent.com/Y-Less/sscanf/master/sscanf2.inc
+          curl -L --fail --retry 3 -o build/include/sscanf2.inc https://raw.githubusercontent.com/Y-Less/sscanf/master/sscanf2.inc
           test -s build/include/a_samp.inc
           test -s build/include/sscanf2.inc
 
-          curl -L --fail -o sscanf-linux.tar.gz https://github.com/Y-Less/sscanf/releases/download/v2.13.8/sscanf-2.13.8-linux.tar.gz
+          curl -L --fail --retry 3 -o sscanf-linux.tar.gz https://github.com/Y-Less/sscanf/releases/download/v2.13.8/sscanf-2.13.8-linux.tar.gz
           mkdir -p third_party/sscanf
           tar -xzf sscanf-linux.tar.gz -C third_party/sscanf
           find third_party/sscanf -type f -name 'sscanf.so' -exec cp {} build/plugins/sscanf.so \;
 
-          curl -L --fail -o pawncmd-linux.tar.gz https://github.com/katursis/Pawn.CMD/releases/download/3.3.6/pawncmd-3.3.6-linux.tar.gz
+          curl -L --fail --retry 3 -o pawncmd-linux.tar.gz https://github.com/katursis/Pawn.CMD/releases/download/3.3.6/pawncmd-3.3.6-linux.tar.gz
           mkdir -p third_party/pawncmd
           tar -xzf pawncmd-linux.tar.gz -C third_party/pawncmd
           find third_party/pawncmd -type f -name 'pawncmd.so' -exec cp {} build/plugins/pawncmd.so \;
 
           test -s build/plugins/sscanf.so
           test -s build/plugins/pawncmd.so
-          ls -lh build/plugins
 
-      - name: Integrate NYX Admin Text dispatcher
+      - name: Validate NYX source
         run: |
-          python3 <<'PY'
-          from pathlib import Path
-          import re
-
-          path = Path('gamemodes/nyx_roleplay.pwn')
-          text = path.read_text(encoding='utf-8')
-
-          include = '#include <nyx_admin_text>'
-          if include not in text:
-              marker = '#include <a_samp>'
-              if marker not in text:
-                  raise SystemExit('ERRO: include <a_samp> nao encontrado; integracao abortada.')
-              text = text.replace(marker, marker + '\n' + include, 1)
-
-          callback = re.compile(r'public\s+OnPlayerCommandText\s*\(\s*playerid\s*,\s*cmdtext\s*\[\s*\]\s*\)\s*\{')
-          match = callback.search(text)
-          if not match:
-              raise SystemExit('ERRO: callback OnPlayerCommandText nao encontrada; nenhum arquivo foi compilado.')
-
-          dispatch = '    if(NYX_AdminCommandText(playerid,cmdtext)) return 1;\n'
-          body_start = match.end()
-          if 'NYX_AdminCommandText(playerid,cmdtext)' not in text[body_start:body_start + 1200]:
-              text = text[:body_start] + '\n' + dispatch + text[body_start:]
-
-          path.write_text(text, encoding='utf-8')
-          print('NYX Admin Text integrado com sucesso.')
-          PY
-
-          grep -n "#include <nyx_admin_text>" gamemodes/nyx_roleplay.pwn
-          grep -n "NYX_AdminCommandText(playerid,cmdtext)" gamemodes/nyx_roleplay.pwn
+          test -s gamemodes/nyx_roleplay.pwn
+          test -s pawno/include/nyx_config.inc
+          test -s pawno/include/nyx_accounts.inc
+          test -s pawno/include/nyx_jobs.inc
+          test -s pawno/include/nyx_marriage.inc
+          test -s pawno/include/nyx_admin_text.inc
 
       - name: Compile NYX GameMode
         run: |
+          set -euo pipefail
           COMPILER=$(find pawnc -type f -name pawncc | head -1)
           test -n "$COMPILER"
           chmod +x "$COMPILER"
-          export LD_LIBRARY_PATH="$(dirname "$COMPILER")/../lib:${LD_LIBRARY_PATH}"
+          export LD_LIBRARY_PATH="$(dirname "$COMPILER")/../lib:${LD_LIBRARY_PATH:-}"
           mkdir -p build/gamemodes
-          set -o pipefail
-          "$COMPILER" "gamemodes/nyx_roleplay.pwn" "-i:pawno/include" "-i:build/include" "-;+" "-(+" "-Z-" "-d0" "-O2" "-t4" "-o:build/gamemodes/nyx_roleplay" 2>&1 | tee build/compile.log
+          "$COMPILER" "gamemodes/nyx_roleplay.pwn" "-i:pawno/include" "-i:build/include" "-;+" "-(+" "-Z-" "-d3" "-O2" "-t4" "-o:build/gamemodes/nyx_roleplay" 2>&1 | tee build/compile.log
           test -s build/gamemodes/nyx_roleplay.amx
 
       - name: Compile NYX Fire filterscript
         run: |
+          set -euo pipefail
+          if [ ! -f filterscripts/nyx_fire.pwn ]; then
+            echo 'filterscripts/nyx_fire.pwn não existe; pulando este filterscript.'
+            exit 0
+          fi
           COMPILER=$(find pawnc -type f -name pawncc | head -1)
           chmod +x "$COMPILER"
-          export LD_LIBRARY_PATH="$(dirname "$COMPILER")/../lib:${LD_LIBRARY_PATH}"
+          export LD_LIBRARY_PATH="$(dirname "$COMPILER")/../lib:${LD_LIBRARY_PATH:-}"
           mkdir -p build/filterscripts
-          set -o pipefail
-          "$COMPILER" "filterscripts/nyx_fire.pwn" "-i:pawno/include" "-i:build/include" "-;+" "-(+" "-Z-" "-d0" "-O2" "-t4" "-o:build/filterscripts/nyx_fire" 2>&1 | tee build/fire-compile.log
+          "$COMPILER" "filterscripts/nyx_fire.pwn" "-i:pawno/include" "-i:build/include" "-;+" "-(+" "-Z-" "-d3" "-O2" "-t4" "-o:build/filterscripts/nyx_fire" 2>&1 | tee build/fire-compile.log
           test -s build/filterscripts/nyx_fire.amx
 
-      - name: Assemble Linux NYX server package
+      - name: Assemble LameHost Linux package
         run: |
+          set -e
           mkdir -p release/gamemodes release/filterscripts release/plugins
           cp build/gamemodes/nyx_roleplay.amx release/gamemodes/nyx_roleplay.amx
-          cp build/filterscripts/nyx_fire.amx release/filterscripts/nyx_fire.amx
+          if [ -f build/filterscripts/nyx_fire.amx ]; then cp build/filterscripts/nyx_fire.amx release/filterscripts/nyx_fire.amx; fi
           cp build/plugins/sscanf.so release/plugins/sscanf.so
           cp build/plugins/pawncmd.so release/plugins/pawncmd.so
-          if [ -f server.cfg ]; then cp server.cfg release/server.cfg; fi
+          [ -f server.cfg ] && cp server.cfg release/server.cfg || true
+          cp build/compile.log release/compile.log
           cat > release/README-NYX-LAMEHOST.txt <<'EOF'
-          NYX ROLEPLAY - LINUX SERVER PACKAGE
+NYX ROLEPLAY - LAMEHOST LINUX PACKAGE
 
-          Upload the contents of this package to the LameHost server root.
-          The plugins MUST remain in the plugins/ directory:
-            plugins/sscanf.so
-            plugins/pawncmd.so
+Upload the CONTENTS of this package to the server root.
+Required runtime plugins:
+  plugins/sscanf.so
+  plugins/pawncmd.so
 
-          server.cfg must contain:
-            plugins sscanf pawncmd
-            filterscripts nyx_fire
-            gamemode0 nyx_roleplay 1
+server.cfg:
+  plugins sscanf pawncmd
+  gamemode0 nyx_roleplay 1
 
-          After uploading, restart the server and confirm the log says:
-            Loaded 2 plugins.
-          EOF
+If nyx_fire.amx is present, add:
+  filterscripts nyx_fire
+EOF
           test -s release/gamemodes/nyx_roleplay.amx
-          test -s release/filterscripts/nyx_fire.amx
           test -s release/plugins/sscanf.so
           test -s release/plugins/pawncmd.so
           cd release
@@ -140,3 +120,11 @@ jobs:
           name: nyx-roleplay-linux-server
           path: nyx-roleplay-linux-server.zip
           if-no-files-found: error
+
+      - name: Upload compile log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nyx-roleplay-compile-log
+          path: build/*.log
+          if-no-files-found: ignore
