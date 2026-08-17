@@ -48,6 +48,7 @@ new const NYX_SKIN_CATALOG[] = {
     308,309,310,311
 };
 
+#include <nyx_admin_compat>
 #include <nyx_legacy>
 #include <nyx_completion>
 #include <nyx_inventory>
