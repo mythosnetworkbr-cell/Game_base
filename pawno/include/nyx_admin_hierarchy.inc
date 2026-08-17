@@ -3,7 +3,7 @@
 #endif
 #define _NYX_ADMIN_HIERARCHY_INCLUDED
 
-// Hierarquia administrativa oficial fornecida para a NYX ROLEPLAY.
+// Hierarquia administrativa oficial da NYX ROLEPLAY.
 #define LEVEL_SUPORTE            1
 #define LEVEL_ADMIN_ASSISTENTE   2
 #define LEVEL_ADMIN_2            3
@@ -18,9 +18,7 @@ stock bool:NYX_IsValidAdminLevel(level)
 {
     switch(level)
     {
-        case 0, LEVEL_SUPORTE, LEVEL_ADMIN_ASSISTENTE, LEVEL_ADMIN_2,
-             LEVEL_ADMIN_LIDER, LEVEL_MANAGER, LEVEL_ALL, LEVEL_STAFF,
-             LEVEL_DEV, LEVEL_OWNER: return true;
+        case 0, LEVEL_SUPORTE, LEVEL_ADMIN_ASSISTENTE, LEVEL_ADMIN_2, LEVEL_ADMIN_LIDER, LEVEL_MANAGER, LEVEL_ALL, LEVEL_STAFF, LEVEL_DEV, LEVEL_OWNER: return true;
     }
     return false;
 }
@@ -29,22 +27,21 @@ stock NYX_GetAdminRankName(level, name[], size)
 {
     switch(level)
     {
-        case 0: name = "Jogador";
-        case LEVEL_SUPORTE: name = "Suporte";
-        case LEVEL_ADMIN_ASSISTENTE: name = "Admin Assistente";
-        case LEVEL_ADMIN_2: name = "Admin 2";
-        case LEVEL_ADMIN_LIDER: name = "Admin Lider";
-        case LEVEL_MANAGER: name = "Manager";
-        case LEVEL_ALL: name = "ALL";
-        case LEVEL_STAFF: name = "Staff";
-        case LEVEL_DEV: name = "Dev";
-        case LEVEL_OWNER: name = "Owner";
-        default: name = "Desconhecido";
+        case 0: format(name,size,"Jogador");
+        case LEVEL_SUPORTE: format(name,size,"Suporte");
+        case LEVEL_ADMIN_ASSISTENTE: format(name,size,"Admin Assistente");
+        case LEVEL_ADMIN_2: format(name,size,"Admin 2");
+        case LEVEL_ADMIN_LIDER: format(name,size,"Admin Lider");
+        case LEVEL_MANAGER: format(name,size,"Manager");
+        case LEVEL_ALL: format(name,size,"ALL");
+        case LEVEL_STAFF: format(name,size,"Staff");
+        case LEVEL_DEV: format(name,size,"Dev");
+        case LEVEL_OWNER: format(name,size,"Owner");
+        default: format(name,size,"Desconhecido");
     }
     return 1;
 }
 
-// Somente Dev (80) e Owner (100) podem conceder/revogar cargos.
 stock bool:NYX_CanManageAdminLevel(playerid)
 {
     return NYX_AdminLevel(playerid) >= LEVEL_DEV;
