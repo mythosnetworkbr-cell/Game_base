@@ -2,6 +2,7 @@
 #include <nyx_config>
 #include <nyx_player>
 #include <nyx_accounts>
+#include <nyx_profile>
 #include <nyx_orgs>
 #include <nyx_jobs>
 #include <nyx_marriage>
@@ -55,6 +56,7 @@ public OnPlayerConnect(playerid)
     NYX_ResetJob(playerid);
     NYX_ResetMarriage(playerid);
     NYX_ResetAccountState(playerid);
+    NYX_ProfileReset(playerid);
     NYX_IntegratedReset(playerid);
     NYX_PendingMarriage[playerid] = INVALID_PLAYER_ID;
     NYX_ApplyGraphicsProfile(playerid);
@@ -71,6 +73,7 @@ public OnPlayerDisconnect(playerid, reason)
     NYX_ResetJob(playerid);
     NYX_ResetMarriage(playerid);
     NYX_ResetAccountState(playerid);
+    NYX_ProfileReset(playerid);
     return 1;
 }
 
@@ -163,7 +166,7 @@ public OnPlayerCommandText(playerid, cmdtext[])
 
 public OnPlayerUpdate(playerid)
 {
-    if(NYX_IntegratedUpdate(playerid)) return 1;
+    NYX_IntegratedUpdate(playerid);
     return 1;
 }
 
