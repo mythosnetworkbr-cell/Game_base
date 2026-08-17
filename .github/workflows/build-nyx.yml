@@ -12,20 +12,25 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Download Pawn compiler
         run: |
-          set -e
+          set -euo pipefail
           curl -L --fail --retry 3 -o pawnc.tar.gz https://github.com/openmultiplayer/compiler/releases/download/v3.10.11/pawnc-3.10.11-linux.tar.gz
           mkdir -p pawnc
           tar -xzf pawnc.tar.gz -C pawnc
+          COMPILER=$(find pawnc -type f -name pawncc | head -1)
+          test -n "$COMPILER"
+          chmod +x "$COMPILER"
+          "$COMPILER" 2>&1 | head -n 2 || true
 
       - name: Prepare includes
         run: |
-          set -e
+          set -euo pipefail
           git clone --depth 1 https://github.com/pawn-lang/samp-stdlib.git samp-stdlib
           git clone --depth 1 https://github.com/openmultiplayer/omp-stdlib.git omp-stdlib
           mkdir -p build/include
@@ -34,8 +39,52 @@ jobs:
           find pawno/include -maxdepth 1 -type f -name '*.inc' -exec cp {} build/include/ \;
           curl -L --fail --retry 3 -o build/include/sscanf2.inc https://raw.githubusercontent.com/Y-Less/sscanf/master/sscanf2.inc
           test -s build/include/a_samp.inc
+          test -s build/include/sscanf2.inc
           test -s pawno/include/nyx_config.inc
           test -s pawno/include/nyx_accounts.inc
+          test -s pawno/include/nyx_player.inc
+          test -s pawno/include/nyx_admin_text.inc
+
+      - name: Integrate NYX Staff dispatcher
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('gamemodes/nyx_roleplay.pwn')
+          s = p.read_text(encoding='utf-8')
+
+          include = '#include <nyx_admin_text>'
+          if include not in s:
+              anchor = re.compile(r'(#include\s+<nyx_player>\s*\r?\n)')
+              match = anchor.search(s)
+              if not match:
+                  raise SystemExit('ERRO: include <nyx_player> nao encontrado.')
+              s = s[:match.end()] + include + '\n' + s[match.end():]
+
+          callback = re.compile(
+              r'public\s+OnPlayerCommandText\s*\(\s*playerid\s*,\s*cmdtext\s*\[\s*\]\s*\)\s*\{'
+          )
+          match = callback.search(s)
+          if not match:
+              raise SystemExit('ERRO: OnPlayerCommandText nao encontrada.')
+
+          dispatch = '    if(NYX_AdminCommandText(playerid, cmdtext)) return 1;\n'
+          body_start = match.end()
+          body_end = s.find('\n}', body_start)
+          if body_end < 0:
+              raise SystemExit('ERRO: fim de OnPlayerCommandText nao encontrado.')
+
+          body = s[body_start:body_end]
+          if 'NYX_AdminCommandText(playerid' not in body:
+              s = s[:body_start] + '\n' + dispatch + s[body_start:]
+
+          p.write_text(s, encoding='utf-8')
+          print('NYX Staff dispatcher integrado.')
+          PY
+          grep -n "#include <nyx_admin_text>" gamemodes/nyx_roleplay.pwn
+          grep -n "NYX_AdminCommandText(playerid" gamemodes/nyx_roleplay.pwn
 
       - name: Compile NYX GameMode
         run: |
@@ -45,11 +94,33 @@ jobs:
           chmod +x "$COMPILER"
           export LD_LIBRARY_PATH="$(dirname "$COMPILER")/../lib:${LD_LIBRARY_PATH:-}"
           mkdir -p build
-          "$COMPILER" "gamemodes/nyx_roleplay.pwn" "-i:pawno/include" "-i:build/include" "-;+" "-(+" "-Z-" "-d3" "-O2" "-t4" "-o:build/nyx_roleplay" 2>&1 | tee build/compile.log
+          INCLUDE_ROOT="$GITHUB_WORKSPACE"
+          "$COMPILER" "gamemodes/nyx_roleplay.pwn" \
+            "-i${INCLUDE_ROOT}/pawno/include" \
+            "-i${INCLUDE_ROOT}/build/include" \
+            "-;+" "-(+" "-Z-" "-d3" "-O2" "-t4" \
+            "-o:build/nyx_roleplay" 2>&1 | tee build/compile.log
           test -s build/nyx_roleplay.amx
 
-      - name: Package build
+      - name: Summarize compiler result
+        if: always()
         run: |
+          echo '===== NYX COMPILE SUMMARY ====='
+          if [ -f build/compile.log ]; then
+            grep -E '([0-9]+ (Error|Errors|Warning|Warnings)\.)|error [0-9]+:|warning [0-9]+:' build/compile.log | tail -n 80 || true
+          else
+            echo 'compile.log nao foi gerado.'
+          fi
+          if [ -s build/nyx_roleplay.amx ]; then
+            stat -c 'AMX: %s bytes' build/nyx_roleplay.amx
+          else
+            echo 'AMX: nao gerado.'
+          fi
+
+      - name: Package build
+        if: success()
+        run: |
+          set -euo pipefail
           mkdir -p build/nyx_test
           cp build/nyx_roleplay.amx build/nyx_test/
           cp gamemodes/nyx_roleplay.pwn build/nyx_test/
@@ -57,6 +128,7 @@ jobs:
           tar -czf nyx-test-build.tar.gz -C build nyx_test
 
       - name: Upload AMX and logs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: nyx-test-build
@@ -65,4 +137,4 @@ jobs:
             build/nyx_roleplay.pwn
             build/compile.log
             nyx-test-build.tar.gz
-          if-no-files-found: error
+          if-no-files-found: ignore
