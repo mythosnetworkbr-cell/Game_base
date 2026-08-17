@@ -23,9 +23,11 @@ jobs:
 
       - name: Get SA-MP includes
         run: |
+          git clone --depth 1 https://github.com/pawn-lang/samp-stdlib.git samp-stdlib
           git clone --depth 1 https://github.com/openmultiplayer/omp-stdlib.git omp-stdlib
           mkdir -p build/include
-          cp omp-stdlib/*.inc build/include/
+          cp samp-stdlib/*.inc build/include/
+          cp omp-stdlib/*.inc build/include/ 2>/dev/null || true
           cp pawno/include/*.inc build/include/ 2>/dev/null || true
 
       - name: Compile NYX
