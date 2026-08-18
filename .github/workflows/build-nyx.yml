@@ -44,8 +44,9 @@ jobs:
           test -s pawno/include/nyx_accounts.inc
           test -s pawno/include/nyx_player.inc
           test -s pawno/include/nyx_admin_text.inc
+          test -s pawno/include/nyx_admin_runtime.inc
 
-      - name: Integrate NYX Staff dispatcher
+      - name: Integrate NYX Staff runtime
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -55,36 +56,39 @@ jobs:
           p = Path('gamemodes/nyx_roleplay.pwn')
           s = p.read_text(encoding='utf-8')
 
-          include = '#include <nyx_admin_text>'
-          if include not in s:
-              anchor = re.compile(r'(#include\s+<nyx_player>\s*\r?\n)')
-              match = anchor.search(s)
-              if not match:
-                  raise SystemExit('ERRO: include <nyx_player> nao encontrado.')
-              s = s[:match.end()] + include + '\n' + s[match.end():]
+          includes = ['#include <nyx_admin_text>', '#include <nyx_admin_runtime>']
+          anchor = re.compile(r'(#include\s+<nyx_player>\s*\r?\n)')
+          match = anchor.search(s)
+          if not match:
+              raise SystemExit('ERRO: include <nyx_player> nao encontrado.')
+          insert = ''.join(x + '\n' for x in includes if x not in s)
+          if insert:
+              s = s[:match.end()] + insert + s[match.end():]
 
-          callback = re.compile(
-              r'public\s+OnPlayerCommandText\s*\(\s*playerid\s*,\s*cmdtext\s*\[\s*\]\s*\)\s*\{'
-          )
+          callback = re.compile(r'public\s+OnPlayerCommandText\s*\(\s*playerid\s*,\s*cmdtext\s*\[\s*\]\s*\)\s*\{')
           match = callback.search(s)
           if not match:
               raise SystemExit('ERRO: OnPlayerCommandText nao encontrada.')
 
-          dispatch = '    if(NYX_AdminCommandText(playerid, cmdtext)) return 1;\n'
           body_start = match.end()
           body_end = s.find('\n}', body_start)
           if body_end < 0:
               raise SystemExit('ERRO: fim de OnPlayerCommandText nao encontrado.')
-
           body = s[body_start:body_end]
+          dispatch = '    NYX_AdminLog(playerid, cmdtext);\n    if(NYX_AdminCommandText(playerid, cmdtext)) return 1;\n'
           if 'NYX_AdminCommandText(playerid' not in body:
               s = s[:body_start] + '\n' + dispatch + s[body_start:]
 
+          # God Mode: inject a damage guard only when the callback is not already defined.
+          if 'public OnPlayerTakeDamage' not in s:
+              s += '\npublic OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart)\n{\n    if (NYX_AdminGodDamage(playerid)) return 1;\n    return 1;\n}\n'
+
           p.write_text(s, encoding='utf-8')
-          print('NYX Staff dispatcher integrado.')
+          print('NYX Staff runtime integrado.')
           PY
-          grep -n "#include <nyx_admin_text>" gamemodes/nyx_roleplay.pwn
-          grep -n "NYX_AdminCommandText(playerid" gamemodes/nyx_roleplay.pwn
+          grep -n "nyx_admin_runtime" gamemodes/nyx_roleplay.pwn
+          grep -n "NYX_AdminLog(playerid" gamemodes/nyx_roleplay.pwn
+          grep -n "NYX_AdminGodDamage" gamemodes/nyx_roleplay.pwn
 
       - name: Compile NYX GameMode
         run: |
