@@ -79,7 +79,6 @@ jobs:
           if 'NYX_AdminCommandText(playerid' not in body:
               s = s[:body_start] + '\n' + dispatch + s[body_start:]
 
-          # God Mode: inject a damage guard only when the callback is not already defined.
           if 'public OnPlayerTakeDamage' not in s:
               s += '\npublic OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart)\n{\n    if (NYX_AdminGodDamage(playerid)) return 1;\n    return 1;\n}\n'
 
