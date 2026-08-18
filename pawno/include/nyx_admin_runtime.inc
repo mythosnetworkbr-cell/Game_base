@@ -3,6 +3,7 @@
 #endif
 #define _NYX_ADMIN_RUNTIME_INCLUDED
 
+// NYX CI validation marker: Staff runtime is compiled with the GameMode.
 stock NYX_AdminLog(playerid, const action[])
 {
     new name[MAX_PLAYER_NAME + 1], ip[16], stamp[32], line[256], file;
